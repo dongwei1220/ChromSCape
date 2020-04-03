@@ -1,0 +1,16 @@
+Package: ChromSCape
+Title: Analysis of single-cell Epigenomic data in a Shiny App
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Pacome",
+           family = "Prompsy",
+           role = c("aut", "cre"),
+           email = "pacome.prompsy@curie.fr",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: ChromSCape - Single-Cell Chromatin Landscape profiling - is a ready-to-launch user-friendly Shiny App for analysis of single-cell epigenomic datasets (scChIP-seq, scATAC-seq...) from count matrices to differential analysis & gene set enrichment analysis.
+License: GNU General Public License v3.0
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    testthat
+RoxygenNote: 7.1.0.9000
