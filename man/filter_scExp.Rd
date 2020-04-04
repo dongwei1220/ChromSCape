@@ -9,7 +9,8 @@ filter_scExp(
   min_cov_cell = 1600,
   quant_removal = 95,
   percentMin = 1,
-  bin_min_count = 2
+  bin_min_count = 2,
+  verbose = T
 )
 }
 \arguments{
