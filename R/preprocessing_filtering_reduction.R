@@ -18,7 +18,10 @@
 #' @examples
 create_scExp <- function(datamatrix, annot, removeZeroCells = TRUE, removeZeroFeatures=TRUE){
   
+  stopifnot(is.data.frame(annot),removeZeroCells %in% c(T,F), removeZeroFeatures %in% c(T,F))
+  
   if(nrow(datamatrix) != nrow(annot))  stop('datamatrix and annot should contain the same number of cells')
+  if(length(match(c("cell_id","sample_id"),colnames(annot))) < 2)  stop('annot should contain cell_id & sample_id as column names')
   
   scExp <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = datamatrix), rowData = annot)
   
@@ -48,7 +51,11 @@ create_scExp <- function(datamatrix, annot, removeZeroCells = TRUE, removeZeroFe
 #' @export
 #'
 #' @examples
-filter_scExp <- function(scExp, min_cov_cell = 1600, quant_removal = 95, percentMin = 1, bin_min_count = 2){
+filter_scExp <- function(scExp, min_cov_cell = 1600, quant_removal = 95,
+                         percentMin = 1, bin_min_count = 2, verbose = T){
+  
+  stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(min_cov_cell),
+            is.numeric(quant_removal), is.numeric(percentMin), is.numeric(bin_min_count), verbose %in% c(F,T))
   
   if(is.null(scExp)) warn("Please specify a SingleCellExperiment")
   
@@ -56,9 +63,11 @@ filter_scExp <- function(scExp, min_cov_cell = 1600, quant_removal = 95, percent
                                
   thresh <- quantile(cellCounts, probs=seq(0, 1, 0.01))
   
-  sel1000 =  ( cellCounts > 1000 & cellCounts < thresh[quant_removal+1] ) 
-  sel <- ( cellCounts > min_cov_cell & cellCounts < thresh[quant_removal+1] )
-  
+  sel1000 =  ( cellCounts > 1000 & cellCounts <= thresh[quant_removal+1] ) 
+  sel <- ( cellCounts > min_cov_cell & cellCounts <= thresh[quant_removal+1] )
+  if(verbose) cat(length(which(sel)),"cells pass the threshold of", min_cov_cell,
+                  "minimum reads and are lower than the ", quant_removal, "th centile of library size ~=",round(thresh[quant_removal+1]),"reads.\n")
+    
   # Create the binary matrix of cells >= 1000 counts
   # if count >= bin_min_count, count = 1 else
   bina_counts <- counts(scExp)[,sel1000]
@@ -69,11 +78,11 @@ filter_scExp <- function(scExp, min_cov_cell = 1600, quant_removal = 95, percent
   
   nCells_in_feature = Matrix::colSums(bina_counts) 
   fixedFeature <- ( nCells_in_feature > ((percentMin/100)*(nrow(bina_counts))) ) # Feature selection
+  if(verbose) cat(length(which(fixedFeature)),"features pass the threshold of", percentMin,
+                  " % of total cells 'ON', representing a minimum of", round((percentMin/100)*(nrow(bina_counts))), "cells.\n")
   
   scExp <- scExp[sel,]
-  rowData(scExp) <- rowData(scExp)[sel,]
-  
   scExp <- scExp[,fixedFeature]
-  
+  scExp <- scater::calculateQCMetrics(scExp) 
   return(scExp)
 }
