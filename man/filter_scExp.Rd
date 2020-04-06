@@ -10,6 +10,8 @@ filter_scExp(
   quant_removal = 95,
   percentMin = 1,
   bin_min_count = 2,
+  non_canonical = T,
+  chrM = T,
   verbose = T
 )
 }

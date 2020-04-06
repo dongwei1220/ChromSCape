@@ -8,7 +8,9 @@ create_scExp(
   datamatrix,
   annot,
   removeZeroCells = TRUE,
-  removeZeroFeatures = TRUE
+  removeZeroFeatures = TRUE,
+  removeNonCanonical = TRUE,
+  removeChrM = TRUE
 )
 }
 \arguments{

@@ -181,16 +181,6 @@ shinyAppServer <- function(input, output, session) {
         if(is.null(annot_raw)){ annot_raw <- annot_single} else{ annot_raw <- rbind(annot_raw, annot_single)}
       }
       incProgress(0.7, detail="saving raw data")
-      
-      # Removing non-canonical chromosomes
-      splitID <- sapply(rownames(datamatrix), function(x) strsplit(as.character(x), split="_"))
-      normalChr <- which(sapply(splitID, length) <= 3) # weird chromosomes contain underscores in the name
-      datamatrix <- datamatrix[normalChr,]
-     
-    
-      #Remove chrM from mat if it is inside
-      if(length(grep("chrM",rownames(datamatrix)))>0)  datamatrix <- datamatrix[-grep("chrM",rownames(datamatrix)),]
-      
 
       save(datamatrix, annot_raw, file=file.path(init$data_folder, "datasets", input$new_dataset_name, "scChIP_raw.RData"))
       
@@ -232,7 +222,7 @@ shinyAppServer <- function(input, output, session) {
     annotationId <- annotation_id_norm()
     exclude_regions <- if(input$exclude_regions) setNames(read.table(input$exclude_file$datapath, header=FALSE, stringsAsFactors=FALSE), c("chr", "start", "stop")) else NULL
   
-    callModule(moduleFiltering_and_Reduction, "Filtering_and_Reduction", reactive({input$selected_raw_dataset}), reactive({input$min_coverage_cell}),
+    callModule(moduleFiltering_and_Reduction, "Module_preprocessing_filtering_and_reduction", reactive({input$selected_raw_dataset}), reactive({input$min_coverage_cell}),
                reactive({input$min_cells_window/100.0}), reactive({input$quant_removal}), reactive({init$datamatrix}), reactive({init$annot_raw}),
                reactive({init$data_folder}),reactive({annotationId}), reactive({exclude_regions}))
     init$available_reduced_datasets <- get.available.reduced.datasets()
@@ -262,9 +252,10 @@ shinyAppServer <- function(input, output, session) {
     
   })
   
-  pca <- reactive({ reduced_dataset()$pca })
-  annot <- reactive({ reduced_dataset()$annot })
-  tsne <- reactive({ reduced_dataset()$tsne })
+  scExp <- reactive({reduced_dataset()$scExp})
+  pca <- reactive({reducedDim(scExp(), "PCA") })
+  annot <- reactive({ as.data.frame(colData(scExp())) })
+  tsne <- reactive({ reducedDim(scExp(), "TSNE") })
   
   observeEvent(input$selected_reduced_dataset, {  # load coloring used for PCA, tSNE etc.
     req(input$selected_reduced_dataset)
@@ -301,10 +292,10 @@ shinyAppServer <- function(input, output, session) {
   })
   
   output$num_cell_after_QC_filt <- function(){
-    req(reduced_dataset())
+    req(reduced_dataset(), annot())
 
     table <- as.data.frame(table(init$annot_raw$sample_id))
-    table_filtered <- as.data.frame(table(reduced_dataset()$annot$sample_id))
+    table_filtered <- as.data.frame(table(annot()$sample_id))
     
     colnames(table) = c("Sample","#Cells Before Filtering")
     rownames(table) = NULL 
@@ -368,7 +359,7 @@ shinyAppServer <- function(input, output, session) {
   
   tsne_p <- reactive({
     req(input$tsne_anno, input$tsne_color,levelsSelectedAnnot_tSNE())
-    p <- ggplot(as.data.frame(tsne()$Y), aes(x=V1, y=V2)) + geom_point(alpha=0.6, aes(color=annot()[, input$tsne_color])) +
+    p <- ggplot(as.data.frame(tsne()), aes(x=V1, y=V2)) + geom_point(alpha=0.6, aes(color=annot()[, input$tsne_color])) +
       labs(color=input$tsne_color, x="t-SNE 1", y="t-SNE 2") +
       theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
             panel.background=element_blank(), axis.line=element_line(colour="black"),
@@ -522,7 +513,7 @@ shinyAppServer <- function(input, output, session) {
     
     })
 
-    output$corr_clust_pca_plot <- renderPlot(hc_pca_plot())
+  output$corr_clust_pca_plot <- renderPlot(hc_pca_plot())
   
   output$download_cor_clust_plot <- downloadHandler(
     filename=function(){ paste0("correlation_clustering_", input$selected_reduced_dataset, ".png")},
@@ -574,7 +565,7 @@ shinyAppServer <- function(input, output, session) {
   observeEvent(input$filter_corr_cells, {  # retreiveing cells with low correlation score
     withProgress(message='Filtering correlated cells...', value = 0, {
       incProgress(amount=0.8, detail=paste("filtering"))
-        for(i in 1:500){
+      for(i in 1:500){
         random_mat <-  matrix(sample(mati()), nrow=dim(mati())[1])
         thresh2 <- quantile(cor(random_mat), probs=seq(0,1,0.01))
         limitC <-  thresh2[input$corr_thresh+1]

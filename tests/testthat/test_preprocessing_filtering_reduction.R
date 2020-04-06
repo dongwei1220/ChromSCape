@@ -83,8 +83,8 @@ test_that("Wrong input - basic", {
 
 test_that("Wrong input - advanced", {
   expect_error(create_scExp(annot, mat))
-  expect_error(create_scExp(mat, annot, removeZeroCells = 3))
-  expect_error(create_scExp(mat, annot, removeZeroFeatures = 3))
+  expect_error(create_scExp(mat, annot, remove_zero_cells = 3))
+  expect_error(create_scExp(mat, annot, remove_zero_features = 3))
   expect_error(create_scExp(mat, annot[1:5,]))
 })
 
@@ -104,6 +104,23 @@ test_that("Some features are empty", {
   expect_output(create_scExp(mat.,annot.), "features with 0 signals were removed." )
 })
 
+test_that("Removing chrM - non canonical", {
+  mat. = mat
+  rownames(mat.)[sample(1:nrow(mat.),3)] = paste0("chrM_1_",1:3)
+  expect_output(create_scExp(mat.,annot), "chromosome M regions were removed." )
+  no_removal = create_scExp(mat,annot)
+  removal = create_scExp(mat.,annot)
+  expect_equal(nrow(no_removal), nrow(removal)+3)
+})
+
+test_that("Removing chrM - non canonical", {
+  mat. = mat
+  rownames(mat.)[sample(1:nrow(mat.),3)] = paste0("chrRandom_Unk_1_",1:3)
+  expect_output(create_scExp(mat.,annot), "non canonical regions were removed." )
+  no_removal = create_scExp(mat,annot)
+  removal = create_scExp(mat.,annot)
+  expect_equal(nrow(no_removal), nrow(removal)+3)
+})
 
 scExp = create_scExp(mat,annot)
 
@@ -147,7 +164,7 @@ test_that("Max feature filters remove all features", {
 test_that("Verbose is on /off", {
   expect_output(filter_scExp(scExp,verbose=T), "cells pass the threshold of" )
   expect_output(filter_scExp(scExp,verbose=T), "features pass the threshold of" )
-  expect_invisible({scExp. =filter_scExp(scExp,verbose=F)} )
+  expect_invisible({scExp. = filter_scExp(scExp,verbose=F)} )
 })
 
 test_that("Some cells are empty", {
@@ -192,10 +209,10 @@ test_that("Exclude features ", {
   scExp. = scExp 
   rownames(scExp.) = paste0("Gene", 1:nrow(scExp.))
   
-  expect_equal(exclude_features(scExp.,features_to_exclude = data.frame(gene=paste0("Gene", 1:10)),by = "feature_name"),
+  expect_equal(exclude_features_scExp(scExp.,features_to_exclude = data.frame(gene=paste0("Gene", 1:10)),by = "feature_name"),
                scExp.[-c(1:10),])
   rownames(scExp.) = rownames(scExp)
-  expect_warning(exclude_features(scExp.,features_to_exclude = data.frame(gene=paste0("Gene", 1:10)),by = "feature_name"))
+  expect_warning(exclude_features_scExp(scExp.,features_to_exclude = data.frame(gene=paste0("Gene", 1:10)),by = "feature_name"))
   
 })
 
@@ -204,28 +221,49 @@ test_that("Exclude features ", {
 # by library size, feature size or both
 
 test_that("Normalize features ", {
-  scExp. = scExp 
-
-  expect_s4_class(normalize_scExp(scExp.,"CPM"),"SingleCellExperiment")
-  expect_s4_class(normalize_scExp(scExp.,"TPM"),"SingleCellExperiment")
-  expect_s4_class(normalize_scExp(scExp.,"RPKM"),"SingleCellExperiment")
-  expect_s4_class(normalize_scExp(scExp.,"feature_size_only"),"SingleCellExperiment")
+  expect_s4_class(normalize_scExp(scExp,"TPM"),"SingleCellExperiment")
+  expect_s4_class(normalize_scExp(scExp,"CPM"),"SingleCellExperiment")
+  expect_s4_class(normalize_scExp(scExp,"RPKM"),"SingleCellExperiment")
+  expect_s4_class(normalize_scExp(scExp,"feature_size_only"),"SingleCellExperiment")
   rownames(scExp.) = paste0("Gene", 1:nrow(scExp.))
   expect_warning(normalize_scExp(scExp.))
   
 })
 
-reference_annotation = read.table("annotation/hg38/Gencode_TSS_pc_lincRNA_antisense.bed",col.names = c("chr","start","end","Gene"))
+reference_annotation = read.table("/media/pacome/LaCie/InstitutCurie/Documents/GitLab/ChromSCape/annotation/hg38/Gencode_TSS_pc_lincRNA_antisense.bed",col.names = c("chr","start","end","Gene"))
 
 #### feature_annotation
 # Function to normalize scExp
 # by library size, feature size or both
-scExp = feature_annotation_scExp(scExp,reference_annotation)
+test_that("Feature annotation wrong input", {
+  expect_error(feature_annotation_scExp(scExp))
+  expect_error(feature_annotation_scExp(scExp,NULL))
+  expect_error(feature_annotation_scExp(scExp,data.frame()))
 
-test_that("Normalize features ", {
-  scExp. = scExp 
-  load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected_annotFeat.RData",master)
-  expect_equal(rowData(scExp),makeGRangesFromDataFrame(master$annotFeat,keep.extra.columns = T))
+})
+
+# test_that("Feature annotation right inputf", {
+#   
+#   expect_s4_class(feature_annotation_scExp(scExp,reference_annotation),
+#                   "SingleCellExperiment")
+#   expect_s4_class(feature_annotation_scExp(scExp,makeGRangesFromDataFrame(reference_annotation,keep.extra.columns = T) ),
+#                   "SingleCellExperiment")
+#   
+# })
+
+
+test_that("Dimensionality reduction wrong input", {
+  expect_error(reduce_dims_scExp(scExp,"PCB"))
+  expect_error(reduce_dims_scExp(scExp,NULL))
+  expect_error(reduce_dims_scExp(data.frame()))
+})
+
+
+test_that("Dimensionality reduction right input", {
   expect_warning(normalize_scExp(scExp.))
-  
+  scExp. = scExp
+  scExp. = normalize_scExp(scExp.)
+  pca_1 = reducedDim(reduce_dims_scExp(scExp.),"PCA")
+  pca_2 = as.data.frame(prcomp(Matrix::t(normcounts(scExp.)), retx = T, center = T, scale. = F)$x[,1:50])
+  expect_equal(pca_1, pca_2)
 })
