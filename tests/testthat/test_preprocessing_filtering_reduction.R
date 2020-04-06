@@ -12,7 +12,7 @@ create_scDataset_raw <- function(cells=300,features=600,
   
   stopifnot()
   
-  set.seed(147)
+  set.seed(47)
   
   # Create cell names
   cell_counts = sapply(split( 1:cells , sample(nsamp, cells , repl = TRUE) ), length)
@@ -58,13 +58,13 @@ create_scDataset_raw <- function(cells=300,features=600,
   }
   vec = rpois(cells*features,0.5) #Add count to values > 0, iteratively
   for(i in 1:10) vec[vec >= i] = vec[vec >= i]  +  i^2*rpois(length(vec[vec >= i]),0.5)
-  mat = matrix(vec, nrow = cells, ncol = features, 
-               dimnames = list(cell_names, features_names))
+  mat = matrix(vec, nrow = features, ncol = cells, 
+               dimnames = list( features_names,cell_names))
   annot = data.frame(cell_id = cell_names,
                      sample_id = sample,
                      batch_id = batches,
-                     total_counts = Matrix::rowSums(mat))
-  return(list("mat" =  mat, "annot" = annot))
+                     total_counts = Matrix::colSums(mat))
+  if(sparse) return(list("mat" =  as(mat,"dgCMatrix"), "annot" = annot)) else return(list("mat" =  mat, "annot" = annot))
 }
 
 out = create_scDataset_raw(featureType = "window")
@@ -90,25 +90,26 @@ test_that("Wrong input - advanced", {
 
 test_that("Some cells are empty", {
   mat. = mat
-  mat.[sample(1:nrow(mat.),3),] = 0
+  mat.[,sample(1:ncol(mat.),3)] = 0
   annot. = annot
-  annot.$total_counts = Matrix::rowSums(mat.)
+  annot.$total_counts = Matrix::colSums(mat.)
   expect_output(create_scExp(mat.,annot.), "cells with 0 signals were removed." )
 })
 
 test_that("Some features are empty", {
   mat. = mat
-  mat.[,sample(1:ncol(mat.),3)] = 0
+  mat.[sample(1:nrow(mat.),3),] = 0
   annot. = annot
-  annot.$total_counts = Matrix::rowSums(mat.)
+  annot.$total_counts = Matrix::colSums(mat.)
   expect_output(create_scExp(mat.,annot.), "features with 0 signals were removed." )
 })
+
+
+scExp = create_scExp(mat,annot)
 
 #### filter_scExp
 # Function to filter out cells & features from sparse matrix based on total count per cell,
 # number of cells 'ON' (count >= 2) in features and top covered cells that might be doublets
-
-scExp = create_scExp(mat,annot)
 
 test_that("Wrong input - basic", {
   expect_error(filter_scExp(c(),list()))
@@ -118,28 +119,28 @@ test_that("Wrong input - basic", {
 
 test_that("No cell filter doesn't change number cells", {
   
-  expect_equal(nrow(filter_scExp(scExp,
+  expect_equal(ncol(filter_scExp(scExp,
                             percentMin = 0,
                             quant_removal = 100,
-                            min_cov_cell = 0)), nrow(scExp) )
+                            min_cov_cell = 0)), ncol(scExp) )
 })
 
 test_that("No feature filter doesn't change number features", {
   
-  expect_equal(ncol(filter_scExp(scExp,
+  expect_equal(nrow(filter_scExp(scExp,
                                  percentMin = 0,
                                  quant_removal = 100,
-                                 min_cov_cell = 0)), ncol(scExp) )
+                                 min_cov_cell = 0)), nrow(scExp) )
 })
 
 test_that("Max cell filters remove all cells", {
   
-  expect_equal(nrow(filter_scExp(scExp,
-                    min_cov_cell = max(Matrix::rowSums(counts(scExp))) )),0 )
+  expect_equal(ncol(filter_scExp(scExp,
+                    min_cov_cell = max(Matrix::colSums(counts(scExp))) )),0 )
 })
 
 test_that("Max feature filters remove all features", {
-  expect_equal(ncol(filter_scExp(scExp,percentMin = 101)),0 )
+  expect_equal(nrow(filter_scExp(scExp,percentMin = 101)),0 )
 })
 
 
@@ -151,21 +152,80 @@ test_that("Verbose is on /off", {
 
 test_that("Some cells are empty", {
   mat. = mat
-  mat.[sample(1:nrow(mat.),3),] = 0
+  mat.[sample(1:ncol(mat.),3),] = 0
   annot. = annot
-  annot.$total_counts = Matrix::rowSums(mat.)
+  annot.$total_counts = Matrix::colSums(mat.)
   scExp. = create_scExp(mat., annot.)
   expect_type(filter_scExp(scExp.),typeof(scExp))
 })
 
 test_that("Some features are empty", {
   mat. = mat
-  mat.[,sample(1:ncol(mat.),3)] = 0
+  mat.[sample(1:nrow(mat.),3),] = 0
   annot. = annot
-  annot.$total_counts = Matrix::rowSums(mat.)
+  annot.$total_counts = Matrix::colSums(mat.)
   scExp. = create_scExp(mat., annot.)
   expect_type(filter_scExp(scExp.),typeof(scExp))
 })
 
+#### has_genomic_coordinates
+# Function to return TRUE if can find chromosome, FALSE if not
+test_that("Is not genomic coordinates", {
+  scExp. = scExp 
+  rownames(scExp.) = paste0("Gene", 1:nrow(scExp.))
+  expect_equal(has_genomic_coordinates(scExp.),F)
+  rownames(scExp.) = sample(letters, nrow(scExp.), replace=T)
+  expect_equal(has_genomic_coordinates(scExp.),F)
+  rownames(scExp.) = NULL
+  expect_error(has_genomic_coordinates(scExp.))
+})
+
+test_that("Is genomic coordinates", {
+  expect_equal(has_genomic_coordinates(scExp),T)
+})
 
 
+#### exclude_features
+# Function to exclude genomic coordinates
+# or features from a scExp object
+test_that("Exclude features ", {
+  scExp. = scExp 
+  rownames(scExp.) = paste0("Gene", 1:nrow(scExp.))
+  
+  expect_equal(exclude_features(scExp.,features_to_exclude = data.frame(gene=paste0("Gene", 1:10)),by = "feature_name"),
+               scExp.[-c(1:10),])
+  rownames(scExp.) = rownames(scExp)
+  expect_warning(exclude_features(scExp.,features_to_exclude = data.frame(gene=paste0("Gene", 1:10)),by = "feature_name"))
+  
+})
+
+#### normalize_scExp
+# Function to normalize scExp
+# by library size, feature size or both
+
+test_that("Normalize features ", {
+  scExp. = scExp 
+
+  expect_s4_class(normalize_scExp(scExp.,"CPM"),"SingleCellExperiment")
+  expect_s4_class(normalize_scExp(scExp.,"TPM"),"SingleCellExperiment")
+  expect_s4_class(normalize_scExp(scExp.,"RPKM"),"SingleCellExperiment")
+  expect_s4_class(normalize_scExp(scExp.,"feature_size_only"),"SingleCellExperiment")
+  rownames(scExp.) = paste0("Gene", 1:nrow(scExp.))
+  expect_warning(normalize_scExp(scExp.))
+  
+})
+
+reference_annotation = read.table("annotation/hg38/Gencode_TSS_pc_lincRNA_antisense.bed",col.names = c("chr","start","end","Gene"))
+
+#### feature_annotation
+# Function to normalize scExp
+# by library size, feature size or both
+scExp = feature_annotation_scExp(scExp,reference_annotation)
+
+test_that("Normalize features ", {
+  scExp. = scExp 
+  load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected_annotFeat.RData",master)
+  expect_equal(rowData(scExp),makeGRangesFromDataFrame(master$annotFeat,keep.extra.columns = T))
+  expect_warning(normalize_scExp(scExp.))
+  
+})
