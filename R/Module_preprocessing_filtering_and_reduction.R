@@ -12,7 +12,7 @@ moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_na
         
         incProgress(amount = 0.1, detail = paste("Loading raw data..."))
         
-        scExp = create_scExp(datamatrix(), annot_raw(), removeZeroCells = T, removeZeroFeatures = T)
+        scExp = create_scExp(datamatrix(), annot_raw(), remove_zero_cells = T, remove_zero_features = T)
         
         ############################################################### 2. Filtering & Window selection
         incProgress(amount = 0.2, detail = paste("Filtering dataset..."))
@@ -21,13 +21,13 @@ moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_na
         
         # Filtering based on exclude-regions from bed file, if provided
         if (!is.null(exclude_regions())) {
-            exclude_features_scExp(scExp, exclude_regions(), by = "region")
+            scExp = exclude_features_scExp(scExp, exclude_regions(), by = "region")
         }
         
         ############################################################### 3. Normalizing
         incProgress(amount = 0.1, detail = paste("Normalization..."))
         
-        scExp = normalize_scExp(scExp, type = "RPKM")
+        scExp = normalize_scExp(scExp, type = "CPM")
         
         ############################################################### 4. Feature annotation
         
@@ -72,6 +72,6 @@ moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_na
         ############################################################### 7. Save data
         
         save(scExp, file = file.path(data_folder(), "datasets", raw_dataset_name(), "reduced_data", paste0(paste(raw_dataset_name(), 
-            min_cov_cell(), (percentMin() * 100), quant_removal(), batch_string, sep = "_"), ".RData")))
+            min_cov_cell(), percentMin(), quant_removal(), batch_string, sep = "_"), ".RData")))
     })
 }

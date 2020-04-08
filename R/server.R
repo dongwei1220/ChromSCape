@@ -16,7 +16,7 @@ shinyAppServer <- function(input, output, session) {
     js$disableTab(tab); #Disabling all tabs but the first one
   }
   #Global reactives values
-  cell_cov_df <- reactive ({data.frame(coverage=sort(unname(colSums(init$datamatrix)))) })  # used for plotting cell coverage on first page
+  cell_cov_df <- reactive ({data.frame(coverage=sort(unname(Matrix::colSums(init$datamatrix)))) })  # used for plotting cell coverage on first page
   dataset_name <- reactive({ sub("_\\d+_\\d+(\\.\\d+)?_\\d+_[A-z]+$", "", input$selected_reduced_dataset) })
   annotation_id_norm <- reactive({ read.table(file.path(init$data_folder, 'datasets', input$selected_raw_dataset, 'annotation.txt'), header=FALSE, stringsAsFactors=FALSE)[[1]] })
   annotation_id <- reactive({ read.table(file.path(init$data_folder, 'datasets', dataset_name(), 'annotation.txt'), header=FALSE, stringsAsFactors=FALSE)[[1]] })
@@ -61,6 +61,7 @@ shinyAppServer <- function(input, output, session) {
   ###############################################################
   # 1. Select or upload dataset
   ###############################################################
+  
   output$selected_raw_dataset <- renderUI({ selectInput("selected_raw_dataset", "Select data set :", choices=init$available_raw_datasets) })
   output$data_folder_info <- renderText({"Please select the directory which contains the 'dataset' folder that was built by the app. If this folder does not yet exist, the app will create it in the specified directory."})
   output$selected_reduced_dataset <- renderUI({ selectInput("selected_reduced_dataset", "Select filtered & normalized set :", choices=reduced_datasets()) })
@@ -213,17 +214,21 @@ shinyAppServer <- function(input, output, session) {
       delay(1500, {
         if(gsub(pattern ="_\\d*_\\d*_\\d*_\\w*","",input$selected_reduced_dataset) != input$selected_raw_dataset){
           
-          showNotification(paste0("Warning : Selected raw dataset '",input$selected_raw_dataset, "' is different from selected reduced dataset '", input$selected_reduced_dataset,"'"), duration=5, closeButton=TRUE, type="warning")
+          showNotification(paste0("Warning : Selected raw dataset '",input$selected_raw_dataset,
+                                  "' is different from selected reduced dataset '", input$selected_reduced_dataset,"'"),
+                           duration=5, closeButton=TRUE, type="warning")
         }
       })
     }
   })
+  
   observeEvent(input$dim_reduction, {  # perform QC filtering and dim. reduction
     annotationId <- annotation_id_norm()
-    exclude_regions <- if(input$exclude_regions) setNames(read.table(input$exclude_file$datapath, header=FALSE, stringsAsFactors=FALSE), c("chr", "start", "stop")) else NULL
+    exclude_regions <- if(input$exclude_regions) setNames(read.table(
+      input$exclude_file$datapath, header=FALSE, stringsAsFactors=FALSE), c("chr", "start", "stop")) else NULL
   
     callModule(moduleFiltering_and_Reduction, "Module_preprocessing_filtering_and_reduction", reactive({input$selected_raw_dataset}), reactive({input$min_coverage_cell}),
-               reactive({input$min_cells_window/100.0}), reactive({input$quant_removal}), reactive({init$datamatrix}), reactive({init$annot_raw}),
+               reactive({input$min_cells_window}), reactive({input$quant_removal}), reactive({init$datamatrix}), reactive({init$annot_raw}),
                reactive({init$data_folder}),reactive({annotationId}), reactive({exclude_regions}))
     init$available_reduced_datasets <- get.available.reduced.datasets()
     updateActionButton(session, "dim_reduction", label="Processed and saved successfully", icon = icon("check-circle"))
@@ -252,7 +257,7 @@ shinyAppServer <- function(input, output, session) {
     
   })
   
-  scExp <- reactive({reduced_dataset()$scExp})
+  scExp <- reactive({correlation_and_hierarchical_clust_scExp(reduced_dataset()$scExp)})
   pca <- reactive({reducedDim(scExp(), "PCA") })
   annot <- reactive({ as.data.frame(colData(scExp())) })
   tsne <- reactive({ reducedDim(scExp(), "TSNE") })
@@ -487,31 +492,25 @@ shinyAppServer <- function(input, output, session) {
   ###############################################################
   
   corColors <- colorRampPalette(c("royalblue","white","indianred1"))(256)
-  mati <- reactive({t(pca()[,1:50]) })
   
-  hc_cor <- reactive({
-    tmp = hclust(as.dist(1 - cor(mati())), method="ward.D") 
-    tmp$labels = rep("",length(tmp$labels))
-    tmp
-    })
   
-  mat.so.cor <- reactive({ mati()[,hc_cor()$order] })
   
   hc_pca_plot <- reactive({
-    req(mat.so.cor(), hc_cor(), anocol())
+    req(scExp(),anocol())
     dev.set(4)  # this is a very weird fix, but it seems to work. If it causes problems, delete it and figure out another way.
     unlocked$list$cor_clust_plot=TRUE;
-    geco.hclustAnnotHeatmapPlot(x=cor(mat.so.cor()),
-                              hc=hc_cor(),
-                              hmColors=corColors,
-                              anocol=anocol()[hc_cor()$order,],
-                              xpos=c(0.15, 0.9, 0.164, 0.885),
-                              ypos=c(0.1, 0.5, 0.5, 0.6, 0.62, 0.95),
-                              dendro.cex=0.04,
-                              xlab.cex=0.8,
-                              hmRowNames=FALSE)
+    geco.hclustAnnotHeatmapPlot(
+      x=reducedDim(scExp(),"Cor")[scExp()@metadata$hc_cor$order,scExp()@metadata$hc_cor$order],
+      hc=scExp()@metadata$hc_cor,
+      hmColors=corColors,
+      anocol=anocol()[scExp()@metadata$hc_cor$order,],
+      xpos=c(0.15, 0.9, 0.164, 0.885),
+      ypos=c(0.1, 0.5, 0.5, 0.6, 0.62, 0.95),
+      dendro.cex=0.04,
+      xlab.cex=0.8,
+      hmRowNames=FALSE)
     
-    })
+  })
 
   output$corr_clust_pca_plot <- renderPlot(hc_pca_plot())
   
@@ -519,31 +518,34 @@ shinyAppServer <- function(input, output, session) {
     filename=function(){ paste0("correlation_clustering_", input$selected_reduced_dataset, ".png")},
     content=function(file){
       png(file, width=1200, height=1400, res=300,pointsize = 8)
-      geco.hclustAnnotHeatmapPlot(x=cor(mat.so.cor()),
-                                                hc=hc_cor(),
-                                                hmColors=corColors,
-                                                anocol=anocol()[hc_cor()$order,],
-                                                xpos=c(0.15, 0.9, 0.164, 0.885),
-                                                ypos=c(0.1, 0.5, 0.5, 0.6, 0.62, 0.95),
-                                                dendro.cex=0.04,
-                                                xlab.cex=0.5,
-                                                hmRowNames=FALSE)
+      geco.hclustAnnotHeatmapPlot(x=reducedDim(scExp(),"Cor")[scExp()@metadata$hc_cor$order,scExp()@metadata$hc_cor$order],
+                                  hc=scExp()@metadata$hc_cor,
+                                  hmColors=corColors,
+                                  anocol=anocol()[scExp()@metadata$hc_cor$order,],
+                                  xpos=c(0.15, 0.9, 0.164, 0.885),
+                                  ypos=c(0.1, 0.5, 0.5, 0.6, 0.62, 0.95),
+                                  dendro.cex=0.04,
+                                  xlab.cex=0.8,
+                                  hmRowNames=FALSE)
       dev.off()
 
   })
   
   correlation_values <- reactiveValues(limitC=vector(length=500))
-  corChIP <- reactive({ cor(mati()) })
-  z <- reactive({ matrix(sample(mati()), nrow=dim(mati())[1]) })
+  corChIP <- reactive({ reducedDim(scExp(),"Cor") })
+  z <- reactive({ matrix(sample(t(reducedDim(scExp(),"PCA"))), nrow=ncol(reducedDim(scExp(),"PCA"))) })
   thresh2 <- reactive({quantile(cor(z()), probs=seq(0,1,0.01))})
   limitC <- reactive({thresh2()[input$corr_thresh+1]})
   
+  
   cell_cor_hist <- reactive({
+    req(scExp())
     hist(corChIP(), prob=TRUE, col=alpha("steelblue", 0.8), breaks=50, ylim=c(0,4), main="Distribution of cell to cell correlation scores", xlab="Pearson Corr Scores")
     lines(density(corChIP()), col="blue", lwd=2)
     lines(density(cor(z())), col="black", lwd=2)
     abline(v=limitC(), lwd=2, col="red", lty=2)
     legend("topleft", legend=c("dataset", "randomized data", "correlation threshold"), col=c("blue", "black", "red"), lty=c(1, 1, 2), cex=0.8)
+    
   })
   
   output$cell_cor_hist_plot <- renderPlot( cell_cor_hist() )
@@ -564,42 +566,9 @@ shinyAppServer <- function(input, output, session) {
   
   observeEvent(input$filter_corr_cells, {  # retreiveing cells with low correlation score
     withProgress(message='Filtering correlated cells...', value = 0, {
-      incProgress(amount=0.8, detail=paste("filtering"))
-      for(i in 1:500){
-        random_mat <-  matrix(sample(mati()), nrow=dim(mati())[1])
-        thresh2 <- quantile(cor(random_mat), probs=seq(0,1,0.01))
-        limitC <-  thresh2[input$corr_thresh+1]
-        correlation_values$limitC[i] = limitC
-      }
-      
-      correlation_values$limitC_mean = mean(correlation_values$limitC,na.rm = T)
-      
-      cf$sel2 <- (apply(corChIP(), 1, function(x) length(which(x>correlation_values$limitC_mean)))) > (input$percent_corr*0.01)*dim(corChIP())[1]
-      cf$mati2 <- mati()[, cf$sel2]
-      cf$hc_cor2 <- hclust(as.dist(1 - cor(cf$mati2)), method="ward.D")
-      cf$hc_cor2$labels = rep("",length(cf$hc_cor2$labels))
-      cf$mat.so.cor2 <- cf$mati2[, cf$hc_cor2$order]
-      cf$annot_sel <- annot()[cf$sel2,]
-      cf$anocol_sel <- geco.annotToCol2(annotS=cf$annot_sel[, annotCol()], annotT=cf$annot_sel, plotLegend=T, plotLegendFile=file.path(init$data_folder, "datasets", dataset_name(),"Annotation_legends_reclustering.pdf"), categCol=NULL)
-      lapply(colnames(cf$anocol_sel), function(col){ if(col != "total_counts"){ cf$anocol_sel[, col] <<- as.character(reactVal$annotColors[which(reactVal$annotColors$Sample %in% rownames(cf$anocol_sel)), paste0(col, '_Color')]) } })
-      
-      mati2 <- cf$mati2
-      annot_sel <- cf$annot_sel
-      mat.so.cor2 <- cf$mat.so.cor2
-      anocol_sel <- cf$anocol_sel
-
-      
-      limitC_mean= correlation_values$limitC_mean
-      corChIP = corChIP()
-      mati = mati()
-      
-      hc_cor2 <- cf$hc_cor2
-      hc_cor = hc_cor()
-      save(mati2, annot_sel, mat.so.cor2, anocol_sel,hc_cor,hc_cor2, file=file.path(init$data_folder, "datasets", dataset_name(), "cor_filtered_data", paste0(input$selected_reduced_dataset, "_", input$corr_thresh, "_", input$percent_corr, ".RData")))
-      
-      init$available_filtered_datasets <- get.available.filtered.datasets(dataset_name(), input$selected_reduced_dataset)
-      
-      incProgress(amount=0.2, detail=paste("finished"))
+      incProgress(amount=0.8, detail=paste("Filtering"))
+      scExp_filt = reactive({ filter_correlated_cell_scExp(scExp()) })
+      incProgress(amount=0.2, detail=paste("Finished"))
       updateActionButton(session, "filter_corr_cells", label="Saved", icon = icon("check-circle"))
   
     })
@@ -610,15 +579,18 @@ shinyAppServer <- function(input, output, session) {
       updateActionButton(session, "filter_corr_cells", label="Filter & save", icon=character(0))
     })
   
-  output$corr_clust_filter_plot <- renderPlot(geco.hclustAnnotHeatmapPlot(x=cor(cf$mat.so.cor2),
-                                                                          hc=cf$hc_cor2,
-                                                                          hmColors=corColors,
-                                                                          anocol=cf$anocol_sel[cf$hc_cor2$order,],
-                                                                          xpos=c(0.15, 0.9, 0.164, 0.885),
-                                                                          ypos=c(0.1, 0.5, 0.5, 0.6, 0.62, 0.95),
-                                                                          dendro.cex=0.04,
-                                                                          xlab.cex=0.8,
-                                                                          hmRowNames=FALSE))
+  output$corr_clust_filter_plot <- renderPlot(
+    geco.hclustAnnotHeatmapPlot(
+      x=reducedDim(scExp_filt(),"Cor")[scExp_filt()@metadata$hc_cor$order,scExp_filt()@metadata$hc_cor$order],
+      hc=scExp_filt()@metadata$hc_cor,
+      hmColors=corColors,
+      anocol=anocol()[scExp_filt()@metadata$hc_cor$order,],
+      xpos=c(0.15, 0.9, 0.164, 0.885),
+      ypos=c(0.1, 0.5, 0.5, 0.6, 0.62, 0.95),
+      dendro.cex=0.04,
+      xlab.cex=0.8,
+      hmRowNames=FALSE)
+    )
   
   
   
