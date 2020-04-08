@@ -70,3 +70,18 @@ create_scDataset_raw <- function(cells=300,features=600,
 out = create_scDataset_raw(featureType = "window")
 mat = out$mat
 annot = out$annot
+scExp = create_scExp(mat,annot)
+
+scExp = normalize_scExp(scExp)
+
+scExp = reduce_dims_scExp(scExp)
+
+scExp = correlation_and_hierarchical_clust_scExp(scExp)
+
+scExp_cf = filter_correlated_cell_scExp(scExp,percent_correlation = 2)
+
+test_that("Dimensionality reduction wrong input", {
+  expect_error(reduce_dims_scExp(scExp,"PCB"))
+  expect_error(reduce_dims_scExp(scExp,NULL))
+  expect_error(reduce_dims_scExp(data.frame()))
+})
