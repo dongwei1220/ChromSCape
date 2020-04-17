@@ -35,10 +35,7 @@ moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_na
         
         incProgress(amount = 0.3, detail = paste("Feature annotation..."))
         
-        reference_annotation = read.table(file.path("annotation", annotation_id(), "Gencode_TSS_pc_lincRNA_antisense.bed"), col.names = c("chr", 
-            "start", "end", "Gene"))
-        
-        scExp = feature_annotation_scExp(scExp, reference_annotation = reference_annotation)
+        scExp = feature_annotation_scExp(scExp, ref = annotation_id())
         
         ### 6. Dimensionality Reduction ###
         
@@ -71,8 +68,9 @@ moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_na
         scExp = colors_scExp(scExp, annotCol()) # add colors 
         
         ### 8. Save data ###
-        
-        save(scExp, file = file.path(data_folder(), "datasets", raw_dataset_name(), "reduced_data", paste0(paste(raw_dataset_name(), 
+        save(scExp, file = file.path(data_folder(), "datasets", raw_dataset_name(), "QC_filtering", paste0(paste(raw_dataset_name(), 
             min_cov_cell(), percentMin(), quant_removal(), batch_string, sep = "_"), ".RData")))
+        
+        print("Filtering & Reduction done !")
     })
 }

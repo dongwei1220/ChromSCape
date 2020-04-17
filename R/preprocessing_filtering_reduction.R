@@ -46,7 +46,7 @@ create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zer
             nrow_init = nrow(scExp)
             scExp <- scExp[normal_chr, ]
             if (length(normal_chr) < nrow_init && verbose) 
-                cat("ChromSCape::create_scExp -",nrow(scExp) - length(normal_chr), "non canonical regions were removed.")
+                cat("ChromSCape::create_scExp -",nrow(scExp) - length(normal_chr), "non canonical regions were removed.\n")
         }
         if (remove_chr_M) {
             # Remove chrM from mat if it is inside
@@ -54,7 +54,7 @@ create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zer
             if (length(chrM_regions) > 0) {
                 scExp <- scExp[-chrM_regions, ]
                 if (verbose) 
-                  cat("ChromSCape::create_scExp -",length(chrM_regions), "chromosome M regions were removed.")
+                  cat("ChromSCape::create_scExp -",length(chrM_regions), "chromosome M regions were removed.\n")
             }
         }
     }
@@ -65,9 +65,9 @@ create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zer
         scExp <- scExp[, (Matrix::colSums(counts(scExp) > 0) > 0)]  # remove cells that do not have any read in any cells
     
     if (dim(scExp)[2] != dim_b[2]) 
-        cat("ChromSCape::create_scExp -",dim_b[2] - dim(scExp)[2], "cells with 0 signals were removed.")
+        cat("ChromSCape::create_scExp -",dim_b[2] - dim(scExp)[2], "cells with 0 signals were removed.\n")
     if (dim(scExp)[1] != dim_b[1]) 
-        cat("ChromSCape::create_scExp -",dim_b[1] - dim(scExp)[1], "features with 0 signals were removed.")
+        cat("ChromSCape::create_scExp -",dim_b[1] - dim(scExp)[1], "features with 0 signals were removed.\n")
     
     
     if (has_genomic_coordinates(scExp)) {

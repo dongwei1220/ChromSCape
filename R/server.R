@@ -41,9 +41,11 @@ shinyAppServer <- function(input, output, session) {
   get.available.reduced.datasets <- function(){
     list.files(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = TRUE, pattern="[[:print:]]+_[[:digit:]]+_[[:digit:]]+(.[[:digit:]]+)?_[[:digit:]]+_(uncorrected).RData")
   }
+  
   get.available.filtered.datasets <- function(name, preproc){
-    list.files(path = file.path(init$data_folder, "datasets", name, "cor_filtered_data"), full.names = FALSE, recursive = FALSE, pattern = paste0(preproc, "_[[:digit:]]+_[[:digit:]]+(.[[:digit:]]+)?.RData"))
+    list.files(path = file.path(init$data_folder, "datasets", name, "correlation_clustering"), full.names = FALSE, recursive = FALSE, pattern = paste0(preproc, "_[[:digit:]]+_[[:digit:]]+(.[[:digit:]]+)?.RData"))
   }
+  
   able_disable_tab <- function(variables_to_check, tab_id) {
       able_or_disable = c()
       for(var in variables_to_check){
@@ -129,10 +131,9 @@ shinyAppServer <- function(input, output, session) {
     withProgress(message='Compiling new data set...',value = 0, {
       dir.create(file.path(init$data_folder, "datasets"), showWarnings = FALSE)
       dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name))
-      dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name, "reduced_data"))
-      dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name, "cor_filtered_data"))
-      dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name, "consclust"))
-      dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name, "consclust","Plots"))
+      dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name, "QC_filtering"))
+      dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name, "correlation_clustering"))
+      dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name, "correlation_clustering","Plots"))
       dir.create(file.path(init$data_folder, "datasets", input$new_dataset_name, "diff_analysis_GSEA"))
       write.table(input$annotation, file.path(init$data_folder, 'datasets', input$new_dataset_name, 'annotation.txt'), row.names = FALSE, col.names = FALSE, quote = FALSE)
       incProgress(0.3, detail="reading data matrices")
@@ -252,7 +253,8 @@ shinyAppServer <- function(input, output, session) {
 
     init$available_filtered_datasets <- get.available.filtered.datasets(dataset_name(), input$selected_reduced_dataset)
     
-    addResourcePath('Plots', file.path(init$data_folder, "datasets", dataset_name(), "consclust","Plots"))
+    if(file.exists(file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots"))) 
+      addResourcePath('Plots', file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots"))
 
     file_index <- match(c(input$selected_reduced_dataset), reduced_datasets())
     filename_sel <- file.path(init$data_folder, "datasets", init$available_reduced_datasets[file_index])
@@ -454,7 +456,7 @@ shinyAppServer <- function(input, output, session) {
                                             percent_correlation = input$percent_correlation))
       incProgress(amount=0.2, detail=paste("Saving"))
       data = list("scExp_cf" = scExp_cf())
-      save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "cor_filtered_data",
+      save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering",
                                               paste0(input$selected_reduced_dataset, "_", input$corr_threshold, "_",
                                                      input$percent_correlation, ".RData")))
       incProgress(amount=0.2, detail=paste("Finished"))
@@ -533,22 +535,22 @@ shinyAppServer <- function(input, output, session) {
   filtered_dataset <- observeEvent(input$selected_filtered_dataset, {
     if(!is.null(input$selected_filtered_dataset) & nchar(input$selected_filtered_dataset) > 5){
       myData = new.env()
-      load(file.path(init$data_folder, "datasets", dataset_name(), "cor_filtered_data", paste0(input$selected_filtered_dataset, ".RData")), envir = myData)
+      load(file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering", paste0(input$selected_filtered_dataset, ".RData")), envir = myData)
       scExp_cf(myData$data$scExp_cf)
     }
   })
   
   get_available_k <- function(){
-    saved_clustFiles <- reactive({ list.files(path=file.path(init$data_folder, "datasets", dataset_name(), "consclust"), pattern=paste0(input$selected_filtered_dataset, '_affectation_k*'), full.names=FALSE) })
+    saved_clustFiles <- reactive({ list.files(path=file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering"), pattern=paste0(input$selected_filtered_dataset, '_affectation_k*'), full.names=FALSE) })
     k <- reactive({ gsub(".*_affectation_k(.+)\\.RData", "\\1", saved_clustFiles()) })
     isolate(k)
   }
   
   plotting_directory <- reactive({
     req( input$selected_filtered_dataset )
-    if(!dir.exists(file.path(init$data_folder, "datasets", dataset_name(), "consclust","Plots")))
-      dir.create(file.path(init$data_folder, "datasets", dataset_name(), "consclust","Plots"))
-    file.path(init$data_folder, "datasets", dataset_name(), "consclust","Plots", input$selected_filtered_dataset)
+    if(!dir.exists(file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots")))
+      dir.create(file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots"))
+    file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots", input$selected_filtered_dataset)
   })
   
   clust <- reactiveValues(cc.col=NULL, consclust.mat=NULL, hc = NULL, tsne_corr=NULL, annot_sel2=NULL,
@@ -570,7 +572,7 @@ shinyAppServer <- function(input, output, session) {
   
   observeEvent(input$selected_filtered_dataset, priority = 11, {
     print("Triggering consclust loading...")
-    filename <- file.path(init$data_folder, "datasets", dataset_name(), "cor_filtered_data",
+    filename <- file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering",
                           paste0(input$selected_reduced_dataset, "_", input$corr_threshold, "_",
                                  input$percent_correlation, ".RData"))
       if(file.exists(filename)){
@@ -592,7 +594,7 @@ shinyAppServer <- function(input, output, session) {
 
       scExp_cf(consensus_clustering_scExp(scExp_cf(), prefix = plotting_directory()))
       data = list("scExp_cf" = scExp_cf())
-      save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "cor_filtered_data",
+      save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering",
                                   paste0(input$selected_reduced_dataset, "_", input$corr_threshold, "_",
                                          input$percent_correlation, ".RData")))
       
@@ -635,7 +637,7 @@ shinyAppServer <- function(input, output, session) {
           scExp_cf(choose_cluster_scExp(scExp_cf(), as.integer(input$nclust)))
           incProgress(amount=0.4, detail = paste("Finished"))
           data = list("scExp_cf" = scExp_cf())
-          save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "cor_filtered_data",
+          save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering",
                                       paste0(input$selected_reduced_dataset, "_", input$corr_threshold, "_",
                                              input$percent_correlation, ".RData")))
           incProgress(amount=0.4, detail = paste("Saved"))
@@ -863,7 +865,7 @@ output$anno_cc_box <- renderUI({
         if(sum(checkBams)==0){
           scExp_cf(subset_bam_call_peaks(scExp_cf(), odir, inputBams, as.numeric(input$pc_stat_value), annotation_id(), input$peak_distance_to_merge))
           data = list("scExp_cf" = scExp_cf())
-          save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "cor_filtered_data",
+          save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering",
                                       paste0(input$selected_reduced_dataset, "_", input$corr_threshold, "_",
                                              input$percent_correlation, ".RData")))
           pc$new <- Sys.time()
@@ -1285,17 +1287,6 @@ output$anno_cc_box <- renderUI({
   observeEvent(input$close_and_save, {
     unlink(file.path("www", "images", "*"))
     unlink(file.path(".", "*.csv"))
-    
-    if(!is.null(scExp()))  {
-      scExp = isolate(scExp())
-      save(scExp, file = file.path(init$data_folder, "datasets",  dataset_name(),
-                                    "reduced_data", paste0(input$selected_reduced_dataset,".RData")))
-    }
-    if(!is.null(scExp_cf())) {
-      scExp_cf = isolate(scExp_cf())
-      save(scExp_cf, file = file.path(init$data_folder, "datasets",  dataset_name(),
-                                      'cor_filtered_data', paste0(input$selected_filtered_dataset, ".RData")))
-    }
     
     lapply(names(resourcePaths()), removeResourcePath)
     
