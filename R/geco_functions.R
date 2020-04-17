@@ -5,8 +5,8 @@ distPearson <- function(m) {
 geco.CompareWilcox <- function(dataMat = NULL, annot = NULL, ref = NULL,
                                groups = NULL, featureTab = NULL) {
     res = featureTab
-    res = res[order(res$ID), ]
-    dataMat = dataMat[order(row.names(dataMat)), ]
+    # res = res[order(res$ID), ]
+    # dataMat = dataMat[order(row.names(dataMat)), ]
     for (k in 1:length(groups)) {
         if (length(ref) == 1) {
             refsamp <- ref[[1]]
