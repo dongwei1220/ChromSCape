@@ -1,6 +1,6 @@
-context("Testing preprocessing, filtering & reduction functions")
+context("Testing correlation & clustering results.")
 
-
+library(testthat)
 
 # Functions for testing purposes
 create_scDataset_raw <- function(cells=300,features=600,
@@ -70,6 +70,7 @@ create_scDataset_raw <- function(cells=300,features=600,
 out = create_scDataset_raw(featureType = "window")
 mat = out$mat
 annot = out$annot
+
 scExp = create_scExp(mat,annot)
 
 scExp = normalize_scExp(scExp)
@@ -78,10 +79,122 @@ scExp = reduce_dims_scExp(scExp)
 
 scExp = correlation_and_hierarchical_clust_scExp(scExp)
 
-scExp_cf = filter_correlated_cell_scExp(scExp,percent_correlation = 2)
-
-test_that("Dimensionality reduction wrong input", {
-  expect_error(reduce_dims_scExp(scExp,"PCB"))
-  expect_error(reduce_dims_scExp(scExp,NULL))
-  expect_error(reduce_dims_scExp(data.frame()))
+test_that("Correlation & hierarchical clustering - Wrong inputs.", {
+  expect_error(correlation_and_hierarchical_clust_scExp(NULL))
+  expect_error(correlation_and_hierarchical_clust_scExp(scExp, correlation = "ABC"))
+  expect_error(correlation_and_hierarchical_clust_scExp(scExp, hc_linkage = "ABC"))
+  
+  scExp. = scExp
+  reducedDim(scExp., "PCA") = NULL  
+  expect_error(correlation_and_hierarchical_clust_scExp(scExp.))
+  
 })
+
+test_that("Correlation & hierarchical clustering - Right inputs.", {
+  expect_s4_class(correlation_and_hierarchical_clust_scExp(scExp),
+                  "SingleCellExperiment")
+  expect_s4_class(correlation_and_hierarchical_clust_scExp(scExp, correlation = "spearman", hc_linkage = "mcquitty"),
+                  "SingleCellExperiment")
+  expect_s4_class(correlation_and_hierarchical_clust_scExp(scExp, correlation = "kendall", hc_linkage = "median"),
+                  "SingleCellExperiment")
+
+  expect_is(scExp@metadata$hc_cor,
+                  "hclust")
+  expect_type(reducedDim(scExp,"Cor"),
+                  "double")
+  expect_is(reducedDim(scExp,"Cor"),
+                  "matrix")
+})
+
+
+scExp_cf. = filter_correlated_cell_scExp(scExp, random_iter = 50, percent_correlation = 2,
+                                         corr_threshold = 99)
+
+test_that("Filtering lowly correlated cells - Wrong inputs.", {
+  expect_error(filter_correlated_cell_scExp(NULL))
+  expect_error(filter_correlated_cell_scExp(scExp, percent_correlation = NULL))
+  expect_error(filter_correlated_cell_scExp(scExp, corr_threshold = NULL))
+  
+  
+  scExp. = scExp
+  reducedDim(scExp., "Cor") = NULL  
+  expect_error(filter_correlated_cell_scExp(scExp.))
+  
+})
+
+test_that("Filtering lowly correlated cells - Right inputs.", {
+  expect_s4_class(filter_correlated_cell_scExp(scExp),
+                  "SingleCellExperiment")
+  
+  # No filtering :
+  expect_equal(dim(filter_correlated_cell_scExp(scExp, corr_threshold = 0,verbose = F )),
+               dim(scExp))
+  expect_equal(dim(filter_correlated_cell_scExp(scExp, percent_correlation = 0, verbose = F)),
+               dim(scExp))
+  expect_lt(ncol(filter_correlated_cell_scExp(scExp,percent_correlation = 5, verbose = F)),
+                   ncol(scExp))
+  
+})
+
+scExp_cf = scExp_cf.
+
+test_that("Consensus Clustering - Wrong inputs.", {
+  expect_error(consensus_clustering_scExp(NULL))
+
+  expect_error(consensus_clustering_scExp(scExp_cf,maxK = NULL))
+
+  scExp_cf. = scExp_cf
+  reducedDim(scExp_cf., "Cor") = NULL  
+  expect_error(consensus_clustering_scExp(scExp_cf.))
+  
+})
+
+scExp_cf = consensus_clustering_scExp(scExp_cf, prefix = "tests/test_scChIP/consensus_test",plot_consclust = "pdf")
+
+test_that("Consensus Clustering - Right inputs.", {
+  expect_s4_class(scExp_cf,
+                  "SingleCellExperiment")
+
+  expect_equal(file.exists("tests/test_scChIP/consensus_test/consensus.pdf"),TRUE)
+  expect_equal(file.exists("tests/test_scChIP/consensus_test/icl001.png"),TRUE)
+  if(dir.exists("tests/test_scChIP/consensus_test")) unlink("tests/test_scChIP/consensus_test",recursive = T)
+  
+  # No filtering :
+  expect_is(scExp_cf@metadata$consclust, "list")
+  expect_is(scExp_cf@metadata$consclust[[1]], "matrix")
+  expect_is(scExp_cf@metadata$consclust[[2]], "list")
+  expect_is(scExp_cf@metadata$consclust[[2]]$consensusMatrix, "matrix")
+  expect_is(scExp_cf@metadata$consclust[[2]]$ml, "matrix")
+  expect_is(scExp_cf@metadata$icl, "list")
+  expect_is(scExp_cf@metadata$icl$clusterConsensus, "matrix")
+  expect_is(scExp_cf@metadata$icl$itemConsensus, "matrix")
+  
+})
+
+
+test_that("Choosing clusters - Wrong inputs.", {
+  expect_error(choose_cluster_scExp(NULL))
+  
+  expect_error(choose_cluster_scExp(scExp_cf, nclust = NULL))
+  
+  
+  scExp_cf. = scExp_cf
+  scExp_cf.@metadata$consclust = NULL
+  expect_error(choose_cluster_scExp(scExp_cf.))
+  
+})
+
+scExp_cf = choose_cluster_scExp(scExp_cf, nclust = 3)
+
+test_that("Choosing clusters - Right inputs.", {
+  expect_s4_class(choose_cluster_scExp(scExp_cf),
+                  "SingleCellExperiment")
+  
+  # No filtering :
+  expect_is(colData(scExp_cf)$chromatin_group, "character")
+  expect_is(colData(scExp_cf)$chromatin_group_color, "character")
+  expect_is(reducedDim(scExp_cf,"ConsensusAssociation"), "matrix")
+  expect_is(scExp_cf@metadata$hc_consensus_association, "hclust")
+})
+
+
