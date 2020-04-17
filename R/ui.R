@@ -20,7 +20,7 @@ shinyAppUI <- dashboardPage(skin='green',
                     ),
                     dashboardBody(
                       useShinyjs(),
-                      tags$head(includeCSS('www/style.css')),
+                      tags$head(includeCSS('inst/www/style.css')),
                       tags$style(type="text/css",
                                  ".shiny-output-error { visibility: hidden; }",
                                  ".shiny-output-error:before { visibility: hidden; }"
