@@ -1,22 +1,30 @@
-## Authors : Pacôme Prompsy Title : Wrappers & functions to preprocess & reduce
-## dimensionality of sc Matrix Description : Funtions to load, filter, normalize
-## & reduce sc Epigenetic Matrices prior to analysis
+## Authors : Pacôme Prompsy 
+## Title : Wrappers & functions to preprocess & reduce dimensionality of
+## single-cell Matrix Description : Funtions to load, filter, normalize & reduce
+## single-cell Epigenetic Matrices prior to analysis
 
-# Wrapper to create the single cell experiment from sparse datamatrix and annot,
-# remove Zero count Features then Cells and calculate QC Metrics
-# (scater::calculateQCMetrics)
-#' Title
+
+#' Wrapper to create the single cell experiment from count matrix and feature dataframe
+#' 
+#' Create the single cell experiment from (sparse) datamatrix and feature dataframe containing feature names and location.
+#' Also optionally removes zero count Features, zero count Cells, non canconical chromosomes, and chromosome M. Calculates QC
+#' Metrics (scran).
 #'
-#' @param datamatrix 
-#' @param annot 
-#' @param remove_zero_cells 
-#' @param remove_zero_features 
+#' @param datamatrix A matrix or sparseMatrix of raw counts. Features x Cells (rows x columns). 
+#' @param annot A data.frame containing informations on cells. Should have the
+#' same number of rows as the number of columns in datamatrix.
+#' @param remove_zero_cells remove cells with zero counts ? [T]
+#' @param remove_zero_features remove cells with zero counts ? [T]
+#' @param remove_non_canonical remove non canonical chromosomes ?[T]
+#' @param remove_chr_M remove chromosomes M ? [T]
+#' @param verbose [TRUE]
 #'
-#' @return
+#' @return Returns a SingleCellExperiment object.
 #' @export
 #'
 #' @examples
-create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zero_features = TRUE, remove_non_canonical = TRUE, remove_chr_M = TRUE) {
+create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zero_features = TRUE,
+                         remove_non_canonical = TRUE, remove_chr_M = TRUE, verbose = TRUE) {
     
     stopifnot(is.data.frame(annot), remove_zero_cells %in% c(T, F), remove_zero_features %in% c(T, F))
     
@@ -24,6 +32,8 @@ create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zer
         stop("ChromSCape::create_scExp - datamatrix and annot should contain the same number of cells")
     if (length(match(c("cell_id", "sample_id"), colnames(annot))) < 2) 
         stop("ChromSCape::create_scExp - annot should contain cell_id & sample_id as column names")
+    if (class(datamatrix) == "data.frame") 
+      datamatrix = as.matrix(datamatrix)
   
     scExp <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = datamatrix), colData = annot)
     
@@ -71,18 +81,21 @@ create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zer
     return(scExp)
 }
 
-# Function to filter out cells & features from sparse matrix based on total
-# count per cell, number of cells 'ON' (count >= 2) in features and top covered
-# cells that might be doublets
-#' Title
+
+#' Filter cells and features
 #'
-#' @param scExp 
-#' @param min_cov_cell 
-#' @param quant_removal 
-#' @param percentMin 
-#' @param bin_min_count 
+#' Function to filter out cells & features from SingleCellExperiment based on total
+#' count per cell, number of cells 'ON' in features and top covered
+#' cells that might be doublets.
+#' 
+#' @param scExp A SingleCellExperiment object.
+#' @param min_cov_cell Minimum counts for each cell. [1600]
+#' @param quant_removal Centile of cell counts above which cells are removed. [95]
+#' @param percentMin Minimum percent of cells 'ON' in feature. [1]
+#' @param bin_min_count Minimum number of counts to define if cell is 'ON'. [2]
 #'
-#' @return
+#' @return Returns a filtered SingleCellExperiment object.
+#' 
 #' @export
 #'
 #' @examples
@@ -124,6 +137,12 @@ filter_scExp <- function(scExp, min_cov_cell = 1600, quant_removal = 95, percent
     return(scExp)
 }
 
+#' Does SingleCellExperiment has genomic coordinates in features ?
+#'
+#' @param scExp 
+#'
+#' @return TRUE or FALSE
+#'
 has_genomic_coordinates <- function(scExp) {
     stopifnot(is(scExp, "SingleCellExperiment"), !is.null(rownames(scExp)))
     ID <- rownames(scExp)[1:min(10, length(rownames(scExp)))]
@@ -133,6 +152,12 @@ has_genomic_coordinates <- function(scExp) {
         return(T) else return(F)
 }
 
+#' Get SingleCellExperiment's genomic coordinates
+#'
+#' @param scExp A SingleCellExperiment object.
+#'
+#' @return A GRanges object of genomic coordinates.
+#'
 get_genomic_coordinates <- function(scExp) {
     
     stopifnot(is(scExp, "SingleCellExperiment"))
@@ -147,7 +172,20 @@ get_genomic_coordinates <- function(scExp) {
     return(feature)
 }
 
-exclude_features_scExp <- function(scExp, features_to_exclude, by = c("region", "feature_name"), verbose = T) {
+#' Remove specific features (CNA, repeats)
+#'
+#' @param scExp A SingleCellExperiment object.
+#' @param features_to_exclude A data.frame containing features to exclude.
+#' @param by Type of features. Either 'region' or 'feature_name'. If 'region', will look for 
+#' genomic coordinates in columns 1-3 (chr,start,stop). If 'feature_name',
+#' will look for a genes in first column. ["region"]
+#' @param verbose [T]
+#'
+#' @return A SingleCellExperiment object without features to exclude.
+#' @export
+#'
+#' @examples
+exclude_features_scExp <- function(scExp, features_to_exclude, by = "region", verbose = T) {
     
     stopifnot(is(scExp, "SingleCellExperiment"), is.data.frame(features_to_exclude), is.character(by[1]))
     if (!by[1] %in% c("region", "feature_name")) 
@@ -180,6 +218,12 @@ exclude_features_scExp <- function(scExp, features_to_exclude, by = c("region", 
     return(scExp)
 }
 
+#' Preprocess scExp - Transcripts per Million (TPM)
+#'
+#' @param scExp 
+#'
+#' @return A SingleCellExperiment object.
+#'
 preprocess_TPM <- function(scExp) {
     
     size = BiocGenerics::width(SummarizedExperiment::rowRanges(scExp))
@@ -188,6 +232,12 @@ preprocess_TPM <- function(scExp) {
     return(scExp)
 }
 
+#' Preprocess scExp - Read per Kilobase Per Million (RPKM)
+#'
+#' @param scExp 
+#'
+#' @return A SingleCellExperiment object.
+#'
 preprocess_RPKM <- function(scExp) {
     
     normcounts(scExp) = 10^9 * Matrix::t(Matrix::t(SingleCellExperiment::counts(scExp))/Matrix::colSums(SingleCellExperiment::counts(scExp)))
@@ -197,17 +247,39 @@ preprocess_RPKM <- function(scExp) {
     return(scExp)
 }
 
+#' Preprocess scExp - Counts Per Million (CPM)
+#' 
+#' @param scExp 
+#'
+#' @return A SingleCellExperiment object.
+#'
 preprocess_CPM <- function(scExp) {
     normcounts(scExp) = 10^6 * Matrix::t(Matrix::t(SingleCellExperiment::counts(scExp))/Matrix::colSums(SingleCellExperiment::counts(scExp)))
     return(scExp)
 }
 
+#' Preprocess scExp - size only
+#'
+#' @param scExp 
+#'
+#' @return A SingleCellExperiment object.
+#'
 preprocess_feature_size_only <- function(scExp) {
     size = BiocGenerics::width(SummarizedExperiment::rowRanges(scExp))
     normcounts(scExp) = SingleCellExperiment::counts(scExp)/size
     return(scExp)
 }
 
+#' Normalize counts
+#'
+#' @param scExp A SingleCellExperiment object.
+#' @param type Which normalization to apply. Either 'RPKM', 'CPM', 'TPM' or 'feature_size_only'. Note that for
+#' all normalization by size (RPKM, TPM, feature_size_only), the features must have defined genomic coordinates.
+#'
+#' @return A SingleCellExperiment object containing normalized counts. (See ?normcounts())
+#' @export
+#'
+#' @examples
 normalize_scExp <- function(scExp, type = c("RPKM", "CPM", "TPM", "feature_size_only")) {
     stopifnot(type[1] %in% c("RPKM", "CPM", "TPM", "feature_size_only"), is(scExp, "SingleCellExperiment"))
     if (!has_genomic_coordinates(scExp)) {
@@ -218,27 +290,56 @@ normalize_scExp <- function(scExp, type = c("RPKM", "CPM", "TPM", "feature_size_
         CPM = return(preprocess_CPM(scExp)))
 }
 
-feature_annotation_scExp <- function(scExp, reference_annotation) {
-    stopifnot(is(scExp, "SingleCellExperiment"))
+#' Add gene annotations to features
+#'
+#' @param scExp A SingleCellExperiment object.
+#' @param ref Reference genome. Either 'hg38' or 'mm10'. ["hg38"]
+#' @param reference_annotation A data.frame containing gene (or else) annotation with 
+#' genomic coordinates.
+#'
+#' @return A SingleCellExperiment object with annotated rowData.
+#' @export
+#'
+#' @examples
+feature_annotation_scExp <- function(scExp, ref = "hg38", reference_annotation = NULL) {
+    stopifnot(is(scExp, "SingleCellExperiment"), is.character(ref))
     
-    if (is.null(rowRanges(scExp))) 
+  if(is.null(rowRanges(scExp))) 
         stop("ChromSCape::feature_annotation_scExp - The object doesn't have ranges of coordinates as rowData")
-    if (is.data.frame(reference_annotation)) 
+  
+  if(is.null(reference_annotation) & !(ref %in% c("hg38", "mm10"))) 
+    stop("ChromSCape::feature_annotation_scExp - If reference_annotation is null, ref must be either 'hg38' or
+         'mm10' to automatically load reference gene annotation.")
+  
+  if(is.null(reference_annotation) & (ref %in% c("hg38", "mm10"))) {
+    message(paste0("ChromSCape::feature_annotation_scExp - Selecting ",ref," genes from Gencode."))
+    eval(parse(text = paste0("data(",ref,".GeneTSS)")))
+    reference_annotation = eval(parse(text = paste0("",ref,".GeneTSS")))
+  } 
+
+  if(is.data.frame(reference_annotation)) 
         reference_annotation = makeGRangesFromDataFrame(reference_annotation, keep.extra.columns = T)
     
     feature_ranges = rowRanges(scExp)
     hits = GenomicRanges::distanceToNearest(feature_ranges, reference_annotation, ignore.strand = T, select = "all")
     
     annotFeat = data.frame(chr = as.character(seqnames(feature_ranges[queryHits(hits)])), start = as.character(start(feature_ranges[queryHits(hits)])), 
-        end = as.character(end(feature_ranges[queryHits(hits)])), Gene = as.character(reference_annotation@elementMetadata$Gene)[subjectHits(hits)], 
+        end = as.character(end(feature_ranges[queryHits(hits)])), Gene = as.character(reference_annotation@elementMetadata$gene)[subjectHits(hits)], 
         distance = hits@elementMetadata$distance) %>% mutate(ID = paste(chr, start, end, sep = "_")) %>% select(ID, chr, start, 
         end, Gene, distance)
     
-    annotFeat <- annotFeat %>% group_by(ID) %>% summarise_all(funs(paste(unique(.), collapse = ", "))) %>% as.data.frame()
+    annotFeat = annotFeat %>% group_by(ID) %>% summarise_all(funs(paste(unique(.), collapse = ", "))) %>% as.data.frame()
+    annotFeat = annotFeat[match(rownames(scExp),annotFeat$ID),]
     rowData(scExp) = annotFeat
     return(scExp)
 }
 
+#' Choose perplexity depending on number of cells for Tsne
+#'
+#' @param dataset A matrix of features x cells (rows x columns)
+#'
+#' @return A number between 5 and 30 to use in Rtsne function
+#'
 choose_perplexity <- function(dataset) {
     stopifnot(!is.null(dataset), !is.null(dim(dataset)))
     perplexity = 30
@@ -260,6 +361,18 @@ choose_perplexity <- function(dataset) {
     perplexity
 }
 
+#' Reduce dimensions (PCA, TSNE, UMAP)
+#'
+#' @param scExp A SingleCellExperiment object.
+#' @param dimension_reductions A character vector of methods to apply. [c("PCA","TSNE")]
+#' @param n Numbers of dimensions to keep for PCA. [50]
+#' @param verbose 
+#'
+#' @return A SingleCellExperiment object containing feature spaces. See ?reduceDims().
+#' 
+#' @export
+#'
+#' @examples
 reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n = 50, verbose = T) {
     stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(n), dimension_reductions[1] %in% c("PCA", "TSNE"))
     
@@ -273,6 +386,7 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
     pca <- stats::prcomp(Matrix::t(mat), center = T, scale. = F)
     pca = pca$x[, 1:n]
     
+    set.seed(47)
     # Reduce the perplexity if the number of samples is too low to avoid perplexity error
     if ("TSNE" %in% dimension_reductions) 
         tsne <- Rtsne(pca, dims = 2, pca = FALSE, theta = 0, perplexity = choose_perplexity(pca), verbose = verbose, max_iter = 1000)
@@ -284,9 +398,16 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
     return(scExp)
 }
 
+#' Table of cells before / after QC
+#'
+#' @param scExp A SingleCellExperiment object.
+#' @param annot A raw annotation data.frame of cells before filtering.
+#'
+#' @return A formatted kable in HTML. 
+#'
 num_cell_after_QC_filt_scExp <- function(scExp, annot){
   
-  stopifnot(is(scExp, "SingleCellExperiment"), !is.null(datamatrix))
+  stopifnot(is(scExp, "SingleCellExperiment"), !is.null(annot))
   
   table <- as.data.frame(table(annot$sample_id))
   table_filtered <- as.data.frame(table(colData(scExp)$sample_id))
