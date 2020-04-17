@@ -2,7 +2,7 @@
 % Please edit documentation in R/preprocessing_filtering_reduction.R
 \name{filter_scExp}
 \alias{filter_scExp}
-\title{Title}
+\title{Filter cells and features}
 \usage{
 filter_scExp(
   scExp,
@@ -10,25 +10,25 @@ filter_scExp(
   quant_removal = 95,
   percentMin = 1,
   bin_min_count = 2,
-  non_canonical = T,
-  chrM = T,
   verbose = T
 )
 }
 \arguments{
-\item{scExp}{}
+\item{scExp}{A SingleCellExperiment object.}
 
-\item{min_cov_cell}{}
+\item{min_cov_cell}{Minimum counts for each cell. [1600]}
 
-\item{quant_removal}{}
+\item{quant_removal}{Centile of cell counts above which cells are removed. [95]}
 
-\item{percentMin}{}
+\item{percentMin}{Minimum percent of cells 'ON' in feature. [1]}
 
-\item{bin_min_count}{}
+\item{bin_min_count}{Minimum number of counts to define if cell is 'ON'. [2]}
 }
 \value{
-
+Returns a filtered SingleCellExperiment object.
 }
 \description{
-Title
+Function to filter out cells & features from SingleCellExperiment based on total
+count per cell, number of cells 'ON' in features and top covered
+cells that might be doublets.
 }

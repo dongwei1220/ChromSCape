@@ -2,13 +2,14 @@
 % Please edit documentation in R/runApp.R
 \name{launchApp}
 \alias{launchApp}
-\title{launches the shinyAppDemo app}
+\title{Launch ChromSCape}
 \usage{
 launchApp()
 }
-\value{
-shiny application object
-}
 \description{
-launches the shinyAppDemo app
+Launch ChromSCape
+}
+\examples{
+ChromScape::launchApp()
+
 }
