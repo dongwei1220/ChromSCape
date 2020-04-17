@@ -4,17 +4,10 @@
 
 context("Testing reproducibility of preprocessing & filt with master")
 
-out = create_scDataset_raw(featureType = "window", sparse = F)
-datamatrix = out$mat
-annot_raw = out$annot
-
 master = new.env()
-
-test_that("Re checking that seed is the same", {
-  load("tests/test_scChIP/scChIP_raw.RData", master)
-  expect_equal(master$datamatrix, datamatrix )
-  expect_equal(master$annot_raw, annot_raw )
-})
+load("../../Data/ChromSCape_Data/Reproducibility_new/datasets/HBCx_95_mm10_001/scChIP_raw.RData",master)
+datamatrix = master$datamatrix
+annot_raw = master$annot_raw
 
 scExp = create_scExp(datamatrix,annot_raw)
 
