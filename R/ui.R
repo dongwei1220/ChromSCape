@@ -5,7 +5,7 @@ shinyAppUI <- dashboardPage(skin='green',
                     dashboardSidebar(
                       sidebarUserPanel("Institut Curie - Vallot Lab",
                                        subtitle = a(href = "#", icon("circle", class = "text-success"), "Online"),
-                                       image = "curie.jpg"
+                                       image = "www/curie.jpg"
                       ),
                       sidebarMenu(id="tabs", style = "position: fixed; overflow: visible;",
                                   menuItem("Select or upload dataset", tabName = "upload_dataset", icon=icon("upload")),
@@ -15,7 +15,7 @@ shinyAppUI <- dashboardPage(skin='green',
                                   menuItem("Peak calling", tabName = "peak_calling", icon=icon("chart-area")), #mountain
                                   menuItem("Differential analysis", tabName = "diff_analysis", icon=icon("chart-bar")),
                                   menuItem("Enrichment analysis", tabName = "enrich_analysis", icon=icon("code-branch")),
-                                  menuItem("Close app", tabName = "close", icon=icon("close"))
+                                  menuItem("Close App & Save Analysis", tabName = "close_and_save", icon=icon("close"))
                       )
                     ),
                     dashboardBody(
@@ -107,22 +107,23 @@ shinyAppUI <- dashboardPage(skin='green',
                         # 2. PCA and tSNE
                         ###############################################################
                         
-                        tabItem(tabName = "pca_plots",
+                        tabItem(
+                          tabName = "pca_plots",
                                 fluidPage(
                                   column(width=6,
                                          box(title="PCA visualization", width = NULL, status="success", solidHeader=T,
-                                             column(6, align="left", htmlOutput("pca_color_2D")),
+                                             column(6, align="left", htmlOutput("color_by")),
                                              column(6, align="left", htmlOutput("pca_anno_2D")),
-                                             column(12, align="left", plotlyOutput("pca_plot_2D")),
+                                             column(12, align="left", plotlyOutput("pca_plot")),
                                              column(3, align="left", htmlOutput("pc_select_x")),
                                              column(3, align="left", htmlOutput("pc_select_y"))),
-                                         uiOutput("pca_color_box")),
+                                         uiOutput("color_box")),
                                   column(width=6,
                                          box(title="tSNE visualization", width = NULL, status="success", solidHeader=T,
-                                             column(6, align="left", htmlOutput("tsne_color")),
                                              column(6, align="left", htmlOutput("tsne_anno")),
-                                             column(12, align="left", plotlyOutput("tsne_plot"))),
-                                         uiOutput("tsne_color_box")))
+                                             column(12, align="left", plotlyOutput("tsne_plot")))
+                                         )
+                                )
                         ),
                         
                         ###############################################################
@@ -143,8 +144,8 @@ shinyAppUI <- dashboardPage(skin='green',
                                              column(12, align="left", plotOutput("cell_cor_hist_plot", height=300, width=500),
                                                     downloadButton("download_cor_clust_hist_plot", "Download image"),
                                                     hr(),
-                                                    sliderInput("corr_thresh", "correlation threshold quantile:", min=75, max=99, value=99, step=1),
-                                                    sliderInput("percent_corr", "min percent correlation of cells to others in data set:", min=0, max=15, value=1, step=0.25)),
+                                                    sliderInput("corr_threshold", "correlation threshold quantile:", min=75, max=99, value=99, step=1),
+                                                    sliderInput("percent_correlation", "min percent correlation of cells to others in data set:", min=0, max=15, value=1, step=0.25)),
                                              column(3, align="left", br(),
                                                     actionButton("filter_corr_cells", "Filter & save")),
                                              uiOutput("corr_filtered_hist"))))
@@ -163,17 +164,18 @@ shinyAppUI <- dashboardPage(skin='green',
                                          box(title="Clustering results", width=NULL, status="success", solidHeader=T,
                                              column(4, align="left", actionButton("do_cons_clust", "Perform clustering"),
                                                     br()),
+                                             column(12, align="left", uiOutput("cluster_consensus_png")),
                                              column(12, align="left", uiOutput("cons_clust_pdf")))),
                                   column(width=6,
                                          box(title="Cluster selection", width=NULL, status="success", solidHeader=T,
                                              column(5, align="left", selectInput("nclust", "Select number of clusters:", choices=c(2:10))),
                                              column(3, align="left", br(),
-                                                    actionButton("do_final_figs", "Select")),
+                                                    actionButton("choose_cluster", "Select")),
                                              column(12, align="left", textOutput("nclust_selection_info"))),
                                          uiOutput("anno_cc_box"),
                                          uiOutput("anno_corc_box"),
-                                         uiOutput("anno_tsne_box"),
-                                         uiOutput("anno_tsne_color_box")))
+                                         uiOutput("tsne_box_cf"),
+                                         uiOutput("color_box_cf")))
                         ),
                         
                         ###############################################################
@@ -185,6 +187,7 @@ shinyAppUI <- dashboardPage(skin='green',
                                   column(width=6,
                                          box(title="Peak calling", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", textOutput("peak_calling_info"), hr(),
+                                                    htmlOutput("peak_calling_system"), hr(),
                                                     sliderInput("peak_distance_to_merge", "Select distance of peaks to merge:", min=0, max=50000, value=5000, step=1000),
                                                     uiOutput("bam_upload")),
                                              column(4, align="left", uiOutput("pc_k_selection"),
@@ -206,7 +209,7 @@ shinyAppUI <- dashboardPage(skin='green',
                                          box(title="Parameter selection", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", textOutput("diff_analysis_info"), br()),
                                              column(5, align="left", htmlOutput("selected_k")),
-                                             column(5, align="left", selectInput("de_type", "Select type of cluster comparison:", choices=c("one_vs_rest"))),
+                                             column(5, align="left", selectInput("de_type", "Select type of cluster comparison:", choices=c("one_vs_rest","pairwise"))),
                                              column(12, align="left", sliderInput("qval.th", "adjusted p-value to select significant locations:", min=0.01, max=0.4, value=0.01, step=0.01),
                                                     sliderInput("cdiff.th", "Minimum log-fold change to select significant locations:", min=0, max=3, value=1, step=0.01),
                                                     checkboxInput("only_contrib_cells", "only use cells contributing most to the clustering", value=FALSE)),
@@ -253,12 +256,12 @@ shinyAppUI <- dashboardPage(skin='green',
                         # 8. Close app
                         ###############################################################
                         
-                        tabItem(tabName="close",
+                        tabItem(tabName="close_and_save",
                                 fluidPage(useShinyjs(),
                                           extendShinyjs(text = jscode, functions = c("closeWindow")),
                                           column(width=6,
-                                                 box(title='Close App', solidHeader=T, status='danger', width=NULL,
-                                                     column(12, actionButton("close", "Close App")))
+                                                 box(title='Close App & Save Analysis', solidHeader=T, status='danger', width=NULL,
+                                                     column(12, actionButton("close_and_save", "Close App & Save Analysis")))
                                           )
                                 )
                         )

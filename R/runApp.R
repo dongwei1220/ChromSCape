@@ -1,16 +1,11 @@
-#' launches the shinyAppDemo app
+#' Launch ChromSCape
 #'
-#' @export launchApp
+#' @export
 #'
-#' @return shiny application object
-#'
-#' @example \dontrun {launchApp()}
-#'
+#' @examples ChromScape::launchApp()
+#' 
 #' @import shiny
-#'
-
-
-# wrapper for shiny::shinyApp()
+#'  
 launchApp <- function() {
     shinyApp(ui = shinyAppUI, server = shinyAppServer)
 }
