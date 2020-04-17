@@ -3,7 +3,7 @@ moduleFiltering_and_ReductionUI <- function(id, label = "Filtering_and_Reduction
 }
 
 moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_name, min_cov_cell, percentMin, quant_removal, datamatrix, 
-    annot_raw, data_folder, annotation_id, exclude_regions, annotCol) {
+                                          annot_raw, data_folder, annotation_id, exclude_regions, annotCol) {
     withProgress(message = "Processing data set...", value = 0, {
         
         batch_string <- "uncorrected"
@@ -49,7 +49,7 @@ moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_na
         # annot <- adj_annot } Extract the rotation to do the cross product out.2 <- fastMNN(pcs[[1]], pcs[[2]], pc.input=TRUE)
         # all.equal(head(out,-1), out.2) # should be TRUE (no rotation) # Obtaining corrected expression values for genes 1 and 10.
         # cor.exp <- tcrossprod(out$rotation[c(1,10),], out$corrected) dim(cor.exp)
-              
+        
         # if(!doBatchCorr()){ print('No Batch Correction') incProgress(amount=0.2, detail=paste('Performing dimensionality reduction- NO
         # batch Corr')) # if(length(batch_ids) > 1){ # print('Detecting different samples') # print(length(unique(annot$batch_id))) #
         # for(i in batch_ids){ # batches[[i]] <- mat[, annot$batch_id==i] # } # }else{ # simulate two batches by splitting data rand <-
@@ -69,7 +69,7 @@ moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_na
         
         ### 8. Save data ###
         save(scExp, file = file.path(data_folder(), "datasets", raw_dataset_name(), "QC_filtering", paste0(paste(raw_dataset_name(), 
-            min_cov_cell(), percentMin(), quant_removal(), batch_string, sep = "_"), ".RData")))
+                                                                                                                 min_cov_cell(), percentMin(), quant_removal(), batch_string, sep = "_"), ".RData")))
         
         print("Filtering & Reduction done !")
     })

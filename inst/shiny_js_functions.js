@@ -32,7 +32,7 @@ shinyjs.disableTab = function(name) {
    var aNodeList = document.getElementsByTagName('a');
         for (var i = 0; i < aNodeList.length; i++) {
           if(aNodeList[i].getAttribute('data-value') == name) {
-            console.log('PCA PLOTS !');
+            
             $(aNodeList[i]).bind('click.tab', prev);
             $(aNodeList[i]).addClass('disabled');
           }
@@ -44,7 +44,7 @@ shinyjs.enableTab = function(name) {
      var aNodeList = document.getElementsByTagName('a');
         for (var i = 0; i < aNodeList.length; i++) {
           if(aNodeList[i].getAttribute('data-value') == name) {
-            console.log('PCA PLOTS !');
+            
             $(aNodeList[i]).unbind('click.tab');
             $(aNodeList[i]).removeClass('disabled');
           }

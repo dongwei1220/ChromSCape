@@ -1,32 +1,32 @@
 #global option for ShinyJS
 
 shinyAppUI <- dashboardPage(skin='green',
-                    dashboardHeader(title = "ChromSCape"),
-                    dashboardSidebar(
-                      sidebarUserPanel("Institut Curie - Vallot Lab",
-                                       subtitle = a(href = "#", icon("circle", class = "text-success"), "Online"),
-                                       image = "www/curie.jpg"
-                      ),
-                      sidebarMenu(id="tabs", style = "position: fixed; overflow: visible;",
-                                  menuItem("Select or upload dataset", tabName = "upload_dataset", icon=icon("upload")),
-                                  menuItem("Dimensionality reduction", tabName = "pca_plots", icon=icon("chevron-circle-down")),
-                                  menuItem("Correlation clustering", tabName = "cor_clustering", icon=icon("sitemap")),
-                                  menuItem("Consensus clustering", tabName = "cons_clustering", icon=icon("th")),
-                                  menuItem("Peak calling", tabName = "peak_calling", icon=icon("chart-area")), #mountain
-                                  menuItem("Differential analysis", tabName = "diff_analysis", icon=icon("chart-bar")),
-                                  menuItem("Enrichment analysis", tabName = "enrich_analysis", icon=icon("code-branch")),
-                                  menuItem("Close App & Save Analysis", tabName = "close_and_save", icon=icon("close"))
-                      )
-                    ),
-                    dashboardBody(
-                      useShinyjs(),
-                      tags$head(includeCSS('inst/www/style.css')),
-                      tags$style(type="text/css",
-                                 ".shiny-output-error { visibility: hidden; }",
-                                 ".shiny-output-error:before { visibility: hidden; }"
-                      ),
-                      tags$head(tags$style(HTML(
-                        '.myClass {
+                            dashboardHeader(title = "ChromSCape"),
+                            dashboardSidebar(
+                              sidebarUserPanel("Institut Curie - Vallot Lab",
+                                               subtitle = a(href = "#", icon("circle", class = "text-success"), "Online"),
+                                               image = "www/curie.jpg"
+                              ),
+                              sidebarMenu(id="tabs", style = "position: fixed; overflow: visible;",
+                                          menuItem("Select or upload dataset", tabName = "upload_dataset", icon=icon("upload")),
+                                          menuItem("Dimensionality reduction", tabName = "pca_plots", icon=icon("chevron-circle-down")),
+                                          menuItem("Correlation clustering", tabName = "cor_clustering", icon=icon("sitemap")),
+                                          menuItem("Consensus clustering", tabName = "cons_clustering", icon=icon("th")),
+                                          menuItem("Peak calling", tabName = "peak_calling", icon=icon("chart-area")), #mountain
+                                          menuItem("Differential analysis", tabName = "diff_analysis", icon=icon("chart-bar")),
+                                          menuItem("Enrichment analysis", tabName = "enrich_analysis", icon=icon("code-branch")),
+                                          menuItem("Close App & Save Analysis", tabName = "close_and_save", icon=icon("close"))
+                              )
+                            ),
+                            dashboardBody(
+                              useShinyjs(),
+                              tags$head(includeCSS('inst/www/style.css')),
+                              tags$style(type="text/css",
+                                         ".shiny-output-error { visibility: hidden; }",
+                                         ".shiny-output-error:before { visibility: hidden; }"
+                              ),
+                              tags$head(tags$style(HTML(
+                                '.myClass {
                           font-size: 20px;
                           line-height: 50px;
                           text-align: left;
@@ -36,25 +36,21 @@ shinyAppUI <- dashboardPage(skin='green',
                           color: white;
                         }
                         '))),
-                        tags$script(HTML('
+                              tags$script(HTML('
                            $(document).ready(function() {
                            $("header").find("nav").append(\'<div id="pageHeader" class="myClass"></div>\');
                            })
                            ')),
-                      tabItems(
-                        
-                        
-                        ###############################################################
-                        # 1. Select or upload dataset
-                        ###############################################################
-                        
-                        tabItem(tabName = "upload_dataset",
-                                  
+                              tabItems(
+                                
+                                
+                                ###############################################################
+                                # 1. Select or upload dataset
+                                ###############################################################
+                                
+                                tabItem(tabName = "upload_dataset",
+                                        
                                 fluidPage(
-                                  #Inclue js.cookie.js
-                                  includeScript(file.path(system.file(package="ChromSCape"),"js.cookie.js")),
-                                  #Load shinyJS added functions
-                                  extendShinyjs(script = file.path(system.file(package="ChromSCape"),"shiny_js_functions.js"), functions = c("init_directory","save_cookie","disableTab","enableTab")),
                                   #Left Panel
                                   column(width=6,
                                          box(title="Select local data directory", width = NULL, status="warning", solidHeader=T,

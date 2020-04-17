@@ -1,1 +1,1 @@
-shinyAppDemo::launchApp()
+ChromSCape::launchApp()

@@ -64,3 +64,6 @@ containing the cell barcode information as a tag (for instance tag CB:Z:xxx, XB:
  the availability of these programs. Will only work on unix operating system. Check 
  operating system with 'print(.Platform[1])'.
 }
+\examples{
+
+}

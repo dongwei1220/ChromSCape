@@ -47,20 +47,20 @@ shinyAppServer <- function(input, output, session) {
   }
   
   able_disable_tab <- function(variables_to_check, tab_id) {
-      able_or_disable = c()
-      for(var in variables_to_check){
-        if (unlocked$list[[var]]==T) {
-          able_or_disable = c(able_or_disable,TRUE)
-        } else{
-          able_or_disable = c(able_or_disable,FALSE)
-        }}
-        for (tab in tab_id) {
-          if (FALSE %in% able_or_disable) {
-            js$disableTab(tab_id)
-          }
-          else{
-            js$enableTab(tab)
-          }}
+    able_or_disable = c()
+    for(var in variables_to_check){
+      if (unlocked$list[[var]]==T) {
+        able_or_disable = c(able_or_disable,TRUE)
+      } else{
+        able_or_disable = c(able_or_disable,FALSE)
+      }}
+    for (tab in tab_id) {
+      if (FALSE %in% able_or_disable) {
+        js$disableTab(tab_id)
+      }
+      else{
+        js$enableTab(tab)
+      }}
   }
   
   

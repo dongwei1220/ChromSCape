@@ -123,10 +123,10 @@ test_that("Step 5 : feature annotation ", {
   expect_equal(to_test,original[match(rownames(scExp),master$annotFeat$ID)]) #re order !
   
   #expect_equal(master$annotFeat$ID,rownames(scExp)) # not the same order : original is sorted by name while 
-                                                    # new keeps original matrix row order (#better)
-
+  # new keeps original matrix row order (#better)
+  
   expect_equal(master$annotFeat$Gene[match(rownames(scExp),master$annotFeat$ID)],rowData(scExp)$Gene)
-
+  
 })
 
 # test_that("Step 6 : batch correction ", {
@@ -138,7 +138,7 @@ test_that("Step 5 : feature annotation ", {
 scExp = reduce_dims_scExp(scExp)
 
 test_that("Step 7 : dimensionality reduction", {
- 
+  
   load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected.RData", master)
   
   expect_equal(as.data.frame(master$pca),reducedDim(scExp,"PCA"))
@@ -218,7 +218,7 @@ test_that("Step 12 : differential analysis between clusters", {
   
   all_equal(master$summary_save, scExp_cf@metadata$diff$summary)
   all_equal(my.res_original, my.res_new)
-
+  
 })
 
 scExp_cf = gene_set_enrichment_analysis_scExp(scExp_cf,ref = "hg38", qval.th = 0.4, cdiff.th = 0.3,

@@ -20,7 +20,7 @@
 #' @importFrom SummarizedExperiment assayNames
 plot_distribution_scExp <- function(scExp, raw = T, log10 = F, 
                                     pseudo_counts = 1, bins = 150)
-  {
+{
   
   stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(pseudo_counts))
   if( ! raw %in% c(T,F) | ! log10 %in% c(T,F) ) stop(
@@ -37,8 +37,8 @@ plot_distribution_scExp <- function(scExp, raw = T, log10 = F,
     geom_histogram(color="black", fill="steelblue", bins=bins) +
     labs(x="read coverage per cell") + 
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
-    panel.background=element_blank(), axis.line=element_line(colour="black"),
-    panel.border=element_rect(colour="black", fill=NA))
+          panel.background=element_blank(), axis.line=element_line(colour="black"),
+          panel.border=element_rect(colour="black", fill=NA))
 }
 
 #' Adding colors to cells & features
@@ -55,7 +55,7 @@ plot_distribution_scExp <- function(scExp, raw = T, log10 = F,
 #' @importFrom SingleCellExperiment colData
 #' @importFrom SummarizedExperiment colData
 colors_scExp <- function(scExp, annotCol = "sample_id",
-                        color_by = "sample_id", color_df = NULL){
+                         color_by = "sample_id", color_df = NULL){
   
   stopifnot(is(scExp,"SingleCellExperiment"), is.character(annotCol), is.character(color_by))
   
@@ -69,9 +69,9 @@ colors_scExp <- function(scExp, annotCol = "sample_id",
   if(!is.null(color_df)) { #add custom colors
     if(! color_by %in% colnames(color_df)) 
       stop("ChromSCape::color_scExp - color_by must be present in colnames of color_df is not null.")
-
+    
     SummarizedExperiment::colData(scExp)[,paste0(annotCol,"_color")] = color_df[match(SingleCellExperiment::colData(scExp)[,color_by],
-                                                                color_df[,color_by]), paste0(color_by,"_color"), drop=F] 
+                                                                                      color_df[,color_by]), paste0(color_by,"_color"), drop=F] 
   }
   return(scExp)
 }
