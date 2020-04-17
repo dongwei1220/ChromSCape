@@ -1113,20 +1113,14 @@ output$anno_cc_box <- renderUI({
   # 7. Enrichment analysis
   ###############################################################
   
-  msig_db <- reactive({
+  MSIG.classes <- reactive({
     myData = new.env()
-    load(file.path('annotation', annotation_id(), 'MSigDB.RData'), envir = myData)
-    myData
+    eval(parse(text = paste0("data(",annotation_id(),".MSigDB,envir = myData)")))
+    unique(myData$MSIG.gs$Class)
   })
-  MSIG.ls <- reactive({ msig_db()$MSIG.ls })
-  MSIG.gs <- reactive({ msig_db()$MSIG.gs })
-  MSIG.classes <- reactive({unique(MSIG.gs()$Class)})
-  
-  annotFeat <- reactive({
-    myData = new.env()
-    load(file.path(init$data_folder, 'datasets', dataset_name(), "reduced_data", paste0(input$selected_reduced_dataset, "_annotFeat.RData")), envir = myData)
-    myData$annotFeat
-  })
+
+
+
   annotFeat_long <- reactive({ as.data.frame(cSplit( rowData(scExp_cf()), splitCols="Gene", sep=", ", direction="long")) })
   
   output$enr_info <- renderText({"Enrichment will be performed based on the significant genes per cluster that were computed on the previous page. 
@@ -1151,8 +1145,11 @@ output$anno_cc_box <- renderUI({
   enr <- reactiveValues(Both = NULL, Overexpressed = NULL, Underexpressed = NULL)
   
   GencodeGenes <- reactive({
-    Gencode <- read.table(file.path('annotation', annotation_id(), 'Gencode_TSS_pc_lincRNA_antisense.bed'))
-    as.character(unique(Gencode$V4))
+    myData = new.env()
+    eval(parse(text = paste0("data(",annotation_id(),".GeneTSS, envir = myData)")))
+    as.character(unique(
+      eval(parse(text = paste0("myData$",annotation_id(),".GeneTSS$gene")))
+    ))
   })
   
   observeEvent(input$do_enrich, {
