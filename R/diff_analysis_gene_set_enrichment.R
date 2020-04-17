@@ -26,6 +26,10 @@
 #' @export
 #'
 #' @examples
+#' @importFrom Matrix rowMeans
+#' @importFrom scran combineMarkers 
+#' @importFrom SingleCellExperiment colData normcounts rowData
+#' @importFrom rlist list.append
 differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
                                            qval.th = 0.01, cdiff.th = 1)
   {
@@ -35,26 +39,34 @@ differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
   if(! de_type %in% c("one_vs_rest", "pairwise")) 
     stop("ChromSCape::run_differential_analysis_scExp - de_type must be 'one_vs_rest' or 'pairwise'.") 
   
-  if(! "chromatin_group" %in% colnames(colData(scExp))) 
+  if(! "chromatin_group" %in% colnames(SingleCellExperiment::colData(scExp))) 
     stop("ChromSCape::run_differential_analysis_scExp - scExp object must have selected number of clusters.") 
   
-  nclust = length(unique(colData(scExp)$chromatin_group))
+  nclust = length(unique(SingleCellExperiment::colData(scExp)$chromatin_group))
   
-  counts = normcounts(scExp)
-  feature = data.frame(ID = rowData(scExp)[,"ID"], chr = rowData(scExp)[,"chr"],
-                        start = rowData(scExp)[,"start"], end = rowData(scExp)[,"end"])
-  affectation = as.data.frame(colData(scExp))
+  counts = SingleCellExperiment::normcounts(scExp)
+  feature = data.frame(ID = SingleCellExperiment::rowData(scExp)[,"ID"],
+                       chr = SingleCellExperiment::rowData(scExp)[,"chr"],
+                        start = SingleCellExperiment::rowData(scExp)[,"start"],
+                       end = SingleCellExperiment::rowData(scExp)[,"end"])
+  affectation = as.data.frame(SingleCellExperiment::colData(scExp))
   
   diff = list(res = NULL, summary = NULL, groups = NULL, refs = NULL)
   
   if(de_type == "one_vs_rest"){ # compare each cluster to all the rest
-    mygps = lapply(1:nclust, function(i){ affectation[which(affectation$chromatin_group==paste0("C", i)), "cell_id"]})
+    mygps = lapply(1:nclust, function(i){ 
+      affectation[which(affectation$chromatin_group==paste0("C", i)), "cell_id"]
+      })
     names(mygps) = paste0('C', 1:nclust)
     groups = names(mygps)
-    myrefs = lapply(1:nclust, function(i){ affectation[which(affectation$chromatin_group!=paste0("C", i)), "cell_id"]})
+    myrefs = lapply(1:nclust, function(i){
+      affectation[which(affectation$chromatin_group!=paste0("C", i)), "cell_id"]
+      })
     names(myrefs) = paste0('notC', 1:nclust)
     refs = names(myrefs)
-    res = geco.CompareWilcox(dataMat = counts, annot = affectation, ref = myrefs, groups = mygps, featureTab = feature)
+    res = geco.CompareWilcox(dataMat = counts, annot = affectation,
+                             ref = myrefs, groups = mygps,
+                             featureTab = feature)
     
   } else { # pairwise one-vs-one testing for each cluster
     
@@ -88,14 +100,16 @@ differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
     #get count for last group as the loop doesn't cover it
     tmp.gp = list(affectation[which(affectation$chromatin_group==paste0("C", nclust)), "cell_id"])
     count_save[, paste0('C', nclust)] = apply(counts, 1, function(x) mean(x[as.character(tmp.gp[[1]])]))
-    combinedTests = combineMarkers(de.lists = single_results, pairs = pairs, pval.field="p.val",
+    combinedTests = scran::combineMarkers(de.lists = single_results, pairs = pairs, pval.field="p.val",
                                     effect.field="cdiff", pval.type="any", log.p.in = FALSE,
                                     log.p.out = FALSE, output.field="stats", full.stats = TRUE)
     for(i in 1:as.integer(nclust)){
-      cdiffs = sapply(1:(as.integer(nclust)-1), function(k){ combinedTests[[paste0("C", i)]][feature$ID, k+3]$cdiff })
+      cdiffs = sapply(1:(as.integer(nclust)-1), function(k){
+        combinedTests[[paste0("C", i)]][feature$ID, k+3]$cdiff 
+        })
       res[, paste0("Rank.C", i)] = combinedTests[[paste0("C", i)]][feature$ID, "Top"]
       res[, paste0("Count.C", i)] = as.numeric(count_save[, paste0("C", i)])
-      res[, paste0("cdiff.C", i)] = rowMeans(cdiffs)
+      res[, paste0("cdiff.C", i)] = Matrix::rowMeans(cdiffs)
       res[, paste0("pval.C", i)] = combinedTests[[paste0("C", i)]][feature$ID, "p.value"]
       res[, paste0("qval.C", i)] = combinedTests[[paste0("C", i)]][feature$ID, "FDR"]
     }
@@ -103,14 +117,19 @@ differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
     refs = paste0('pairedTest', 1:nclust)
   }
   
-  diff$summary = matrix(nrow = 3, ncol = length(groups), dimnames = list(c("differential", "over", "under"), groups))
+  diff$summary = matrix(nrow = 3, ncol = length(groups),
+                        dimnames = list(c("differential", "over", "under"),
+                                        groups))
   for(k in 1:length(groups)){
     gpsamp = groups[k]
 
     #For log2(x1/x2) > 1 || log2(x1/x2) > -1
-    diff$summary["differential", gpsamp] = sum(res[, paste("qval", gpsamp, sep=".")] <= qval.th & abs(res[, paste("cdiff", gpsamp, sep=".")]) > cdiff.th, na.rm = T)
-    diff$summary["over", gpsamp] = sum(res[, paste("qval", gpsamp, sep=".")] <= qval.th & res[, paste("cdiff", gpsamp, sep=".")] > cdiff.th, na.rm = T)
-    diff$summary["under", gpsamp] = sum(res[, paste("qval", gpsamp, sep=".")] <= qval.th & res[, paste("cdiff", gpsamp, sep=".")] < -cdiff.th, na.rm = T)
+    diff$summary["differential", gpsamp] = sum(res[, paste("qval", gpsamp, sep=".")] <= qval.th &
+                                                 abs(res[, paste("cdiff", gpsamp, sep=".")]) > cdiff.th, na.rm = T)
+    diff$summary["over", gpsamp] = sum(res[, paste("qval", gpsamp, sep=".")] <= qval.th &
+                                         res[, paste("cdiff", gpsamp, sep=".")] > cdiff.th, na.rm = T)
+    diff$summary["under", gpsamp] = sum(res[, paste("qval", gpsamp, sep=".")] <= qval.th &
+                                          res[, paste("cdiff", gpsamp, sep=".")] < -cdiff.th, na.rm = T)
     
   }
   
@@ -153,7 +172,10 @@ differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
 #' @export
 #'
 #' @examples
-gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref = "hg38", GeneSets = NULL, GeneSetsDf = NULL, GenePool = NULL,
+#' 
+#' @importFrom SingleCellExperiment colData normcounts rowData
+gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref = "hg38",
+                                              GeneSets = NULL, GeneSetsDf = NULL, GenePool = NULL,
                                               qval.th = 0.01, cdiff.th = 1, peak_distance = 1000,
                                               use_peaks = F)
 {
@@ -163,7 +185,7 @@ gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref 
   if(is.null(scExp@metadata$diff)) 
     stop("ChromSCape::gene_set_enrichment_analysis_scExp - No DA, please run run_differential_analysis_scExp first.")
   
-  if(is.null(rowData(scExp)$Gene)) 
+  if(is.null(SingleCellExperiment::rowData(scExp)$Gene)) 
     stop("ChromSCape::gene_set_enrichment_analysis_scExp - No Gene Annotation, please annotate features with genes 
          using feature_annotation_scExp first.")
   
@@ -172,7 +194,7 @@ gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref 
   if(use_peaks & (! "refined_annotation" %in% names(scExp@metadata)) )
     stop("ChromSCape::gene_set_enrichment_analysis_scExp - When use_peaks is TRUE, metadata must contain refined_annotation object.")
   
-  if(! "chromatin_group" %in% colnames(colData(scExp))) 
+  if(! "chromatin_group" %in% colnames(SingleCellExperiment::colData(scExp))) 
     stop("ChromSCape::gene_set_enrichment_analysis_scExp - scExp object must have selected number of clusters.") 
   
   if( (! ref %in% c("hg38", "mm10")) & (is.null(GeneSets) | is.null(GeneSetsDf) | is.null(GenePool) )) 
@@ -193,7 +215,7 @@ gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref 
     GenePool = unique(as.character(GenePool[,"gene"]))
   }
   
-  nclust = length(unique(colData(scExp)$chromatin_group))
+  nclust = length(unique(SingleCellExperiment::colData(scExp)$chromatin_group))
   
   enr = list(Both = NULL, Overexpressed = NULL, Underexpressed = NULL)
  
@@ -205,7 +227,8 @@ gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref 
   res = scExp@metadata$diff$res
   diff = scExp@metadata$diff
   
-  annotFeat_long = as.data.frame(cSplit(as.data.frame(rowData(scExp)), splitCols="Gene", sep=", ", direction="long"))
+  annotFeat_long = as.data.frame(cSplit(as.data.frame(SingleCellExperiment::rowData(scExp)),
+                                        splitCols="Gene", sep=", ", direction="long"))
   
   for(i in 1:length(groups)){
     gp = groups[i]
@@ -276,11 +299,14 @@ gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref 
 #' @return A DT::data.table of enriched gene sets.
 #' @export
 #'
+#' @importFrom DT datatable
+#' @importFrom tidyr unite
 table_enriched_genes_scExp <- function(scExp, set = "Both", chromatin_group = "C1", enr_class_sel = 
                                          c("c1_positional", "c2_curated", "c3_motif", "c4_computational",
                                            "c5_GO", "c6_oncogenic", "c7_immunologic", "hallmark")){
   
-  stopifnot(is(scExp,"SingleCellExperiment"), is.character(set), is.character(chromatin_group), is.character(enr_class_sel))
+  stopifnot(is(scExp,"SingleCellExperiment"), is.character(set),
+            is.character(chromatin_group), is.character(enr_class_sel))
   
   if( is.null(scExp@metadata$enr)) 
     stop("ChromSCape::table_enriched_genes_scExp - No GSEA, please run gene_set_enrichment_analysis_scExp first.")
@@ -294,8 +320,11 @@ table_enriched_genes_scExp <- function(scExp, set = "Both", chromatin_group = "C
   
   table <- scExp@metadata$enr[[set]][[match(chromatin_group, scExp@metadata$diff$groups)]]
   table <- table[which(table[,"Class"] %in% enr_class_sel),]
-  if(is.null(table)){ return(setNames(data.frame(matrix(ncol = 6, nrow = 0)), c("Gene_set","Class", "Num_deregulated_genes", "p.value", "q.value", "Deregulated_genes"))) }
-  table <- unite(table, "dereg_genes", c("Nb_of_deregulated_genes", "Nb_of_genes"), sep="/")
+  if(is.null(table)){ return(setNames(data.frame(matrix(ncol = 6, nrow = 0)),
+                                      c("Gene_set","Class", "Num_deregulated_genes",
+                                        "p.value", "q.value", "Deregulated_genes"))) 
+    }
+  table <- tidyr::unite(table, "dereg_genes", c("Nb_of_deregulated_genes", "Nb_of_genes"), sep="/")
   colnames(table) <- c("Gene_set","Class", "Num_deregulated_genes", "p.value", "adj.p.value", "Deregulated_genes")
   table[, 4] <- round(table[, 4], 9)
   table[, 5] <- round(table[, 5], 9)

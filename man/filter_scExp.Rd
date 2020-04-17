@@ -32,3 +32,6 @@ Function to filter out cells & features from SingleCellExperiment based on total
 count per cell, number of cells 'ON' in features and top covered
 cells that might be doublets.
 }
+\examples{
+
+}

@@ -1,4 +1,4 @@
-distPearson <- function(m) {
+geco.distPearson <- function(m) {
     as.dist(1 - cor(t(m), method = "pearson"))
 }
 

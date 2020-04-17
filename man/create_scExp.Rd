@@ -38,3 +38,6 @@ Create the single cell experiment from (sparse) datamatrix and feature dataframe
 Also optionally removes zero count Features, zero count Cells, non canconical chromosomes, and chromosome M. Calculates QC
 Metrics (scran).
 }
+\examples{
+
+}

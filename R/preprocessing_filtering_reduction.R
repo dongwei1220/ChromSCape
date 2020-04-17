@@ -23,62 +23,68 @@
 #' @export
 #'
 #' @examples
+#' 
+#' @importFrom SingleCellExperiment SingleCellExperiment counts colData
+#' @importFrom Matrix rowSums colSums
+#' @importFrom scater calculateQCMetrics
+#' 
+#' 
 create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zero_features = TRUE,
                          remove_non_canonical = TRUE, remove_chr_M = TRUE, verbose = TRUE) {
-    
-    stopifnot(is.data.frame(annot), remove_zero_cells %in% c(T, F), remove_zero_features %in% c(T, F))
-    
-    if (ncol(datamatrix) != nrow(annot)) 
-        stop("ChromSCape::create_scExp - datamatrix and annot should contain the same number of cells")
-    if (length(match(c("cell_id", "sample_id"), colnames(annot))) < 2) 
-        stop("ChromSCape::create_scExp - annot should contain cell_id & sample_id as column names")
-    if (class(datamatrix) == "data.frame") 
-      datamatrix = as.matrix(datamatrix)
   
-    scExp <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = datamatrix), colData = annot)
-    
-    if (has_genomic_coordinates(scExp)) {
-        if (remove_non_canonical) {
-            # Removing non-canonical chromosomes
-            splitID <- sapply(rownames(scExp), function(x) strsplit(as.character(x),
-                                                                    split = "_|:|-", fixed = F))
-            normal_chr <- which(sapply(splitID, length) <= 3)  # weird chromosomes contain _/:/- in the name
-            nrow_init = nrow(scExp)
-            scExp <- scExp[normal_chr, ]
-            if (length(normal_chr) < nrow_init && verbose) 
-                cat("ChromSCape::create_scExp -",nrow(scExp) - length(normal_chr), "non canonical regions were removed.\n")
-        }
-        if (remove_chr_M) {
-            # Remove chrM from mat if it is inside
-            chrM_regions = grep("chrM", rownames(scExp))
-            if (length(chrM_regions) > 0) {
-                scExp <- scExp[-chrM_regions, ]
-                if (verbose) 
-                  cat("ChromSCape::create_scExp -",length(chrM_regions), "chromosome M regions were removed.\n")
-            }
-        }
+  stopifnot(is.data.frame(annot), remove_zero_cells %in% c(T, F), remove_zero_features %in% c(T, F))
+  
+  if (ncol(datamatrix) != nrow(annot)) 
+    stop("ChromSCape::create_scExp - datamatrix and annot should contain the same number of cells")
+  if (length(match(c("cell_id", "sample_id"), colnames(annot))) < 2) 
+    stop("ChromSCape::create_scExp - annot should contain cell_id & sample_id as column names")
+  if (class(datamatrix) == "data.frame") 
+    datamatrix = as.matrix(datamatrix)
+  
+  scExp = SingleCellExperiment::SingleCellExperiment(assays = list(counts = datamatrix), colData = annot)
+  
+  if (has_genomic_coordinates(scExp)) {
+    if (remove_non_canonical) {
+      # Removing non-canonical chromosomes
+      splitID = sapply(rownames(scExp), function(x) strsplit(as.character(x),
+                                                              split = "_|:|-", fixed = F))
+      normal_chr = which(sapply(splitID, length) <= 3)  # weird chromosomes contain _/:/- in the name
+      nrow_init = nrow(scExp)
+      scExp = scExp[normal_chr, ]
+      if (length(normal_chr) < nrow_init && verbose) 
+        cat("ChromSCape::create_scExp -", nrow(scExp) - length(normal_chr), "non canonical regions were removed.\n")
     }
-    dim_b = dim(scExp)
-    if (remove_zero_features) 
-        scExp <- scExp[(Matrix::rowSums(counts(scExp) > 0) > 0), ]  # remove windows that do not have any read in any cells
-    if (remove_zero_cells) 
-        scExp <- scExp[, (Matrix::colSums(counts(scExp) > 0) > 0)]  # remove cells that do not have any read in any cells
-    
-    if (dim(scExp)[2] != dim_b[2]) 
-        cat("ChromSCape::create_scExp -",dim_b[2] - dim(scExp)[2], "cells with 0 signals were removed.\n")
-    if (dim(scExp)[1] != dim_b[1]) 
-        cat("ChromSCape::create_scExp -",dim_b[1] - dim(scExp)[1], "features with 0 signals were removed.\n")
-    
-    
-    if (has_genomic_coordinates(scExp)) {
-        rows = rownames(scExp)
-        rowRanges(scExp) = get_genomic_coordinates(scExp)
-        rownames(scExp) = rows
+    if (remove_chr_M) {
+      # Remove chrM from mat if it is inside
+      chrM_regions = grep("chrM", rownames(scExp))
+      if (length(chrM_regions) > 0) {
+        scExp = scExp[-chrM_regions, ]
+        if (verbose) 
+          cat("ChromSCape::create_scExp -", length(chrM_regions), "chromosome M regions were removed.\n")
+      }
     }
-    
-    scExp <- scater::calculateQCMetrics(scExp)
-    
-    return(scExp)
+  }
+  dim_b = dim(scExp)
+  if (remove_zero_features) 
+    scExp = scExp[(Matrix::rowSums(counts(scExp) > 0) > 0), ]  # remove windows that do not have any read in any cells
+  if (remove_zero_cells) 
+    scExp = scExp[, (Matrix::colSums(counts(scExp) > 0) > 0)]  # remove cells that do not have any read in any cells
+  
+  if (dim(scExp)[2] != dim_b[2]) 
+    cat("ChromSCape::create_scExp -", dim_b[2] - dim(scExp)[2], "cells with 0 signals were removed.\n")
+  if (dim(scExp)[1] != dim_b[1]) 
+    cat("ChromSCape::create_scExp -", dim_b[1] - dim(scExp)[1], "features with 0 signals were removed.\n")
+  
+  
+  if (has_genomic_coordinates(scExp)) {
+    rows = rownames(scExp)
+    rowRanges(scExp) = get_genomic_coordinates(scExp)
+    rownames(scExp) = rows
+  }
+  
+  scExp = scater::calculateQCMetrics(scExp)
+  
+  return(scExp)
 }
 
 
@@ -99,42 +105,46 @@ create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zer
 #' @export
 #'
 #' @examples
+#' 
+#' @importFrom SingleCellExperiment SingleCellExperiment counts colData
+#' @importFrom Matrix colSums rowSums
+#' @importFrom scater calculateQCMetrics
 filter_scExp <- function(scExp, min_cov_cell = 1600, quant_removal = 95, percentMin = 1, bin_min_count = 2, verbose = T) {
-    
-    stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(min_cov_cell), is.numeric(quant_removal), is.numeric(percentMin), is.numeric(bin_min_count), 
-        verbose %in% c(F, T))
-    
-    if (is.null(scExp)) 
-        warning("ChromSCape::filter_scExp - Please specify a SingleCellExperiment")
-    
-    cellCounts = Matrix::colSums(counts(scExp))
-    
-    thresh <- quantile(cellCounts, probs = seq(0, 1, 0.01))
-    
-    sel1000 = (cellCounts > 1000 & cellCounts <= thresh[quant_removal + 1])
-    sel <- (cellCounts > min_cov_cell & cellCounts <= thresh[quant_removal + 1])
-    
-    if (verbose) 
-        cat("ChromSCape::filter_scExp -",length(which(sel)), "cells pass the threshold of", min_cov_cell, "minimum reads and are lower than the ", quant_removal, 
-            "th centile of library size ~=", round(thresh[quant_removal + 1]), "reads.\n")
-    
-    # Create the binary matrix of cells >= 1000 counts if count >= bin_min_count, count = 1 else
-    bina_counts <- counts(scExp)[,sel1000]
-    sel_below_2 <- (bina_counts < bin_min_count)
-    bina_counts[sel_below_2] <- 0
-    sel_above_1 = (bina_counts >= bin_min_count)
-    bina_counts[sel_above_1] <- 1
-    
-    nCells_in_feature = Matrix::rowSums(bina_counts)
-    fixedFeature <- names(which(nCells_in_feature > ((percentMin/100) * (ncol(bina_counts)))))  # Feature selection
-    if (verbose) 
-        cat("ChromSCape::filter_scExp -",length(fixedFeature), "features pass the threshold of", percentMin, " % of total cells 'ON', representing a minimum of", 
-            round((percentMin/100) * (ncol(bina_counts))), "cells.\n")
-    
-    scExp <- scExp[, sel]
-    scExp <- scExp[fixedFeature, ]
-    scExp <- scater::calculateQCMetrics(scExp)
-    return(scExp)
+  
+  stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(min_cov_cell), is.numeric(quant_removal), is.numeric(percentMin), is.numeric(bin_min_count), 
+            verbose %in% c(F, T))
+  
+  if (is.null(scExp)) 
+    warning("ChromSCape::filter_scExp - Please specify a SingleCellExperiment")
+  
+  cellCounts = Matrix::colSums(counts(scExp))
+  
+  thresh = quantile(cellCounts, probs = seq(0, 1, 0.01))
+  
+  sel1000 = (cellCounts > 1000 & cellCounts <= thresh[quant_removal + 1])
+  sel = (cellCounts > min_cov_cell & cellCounts <= thresh[quant_removal + 1])
+  
+  if (verbose) 
+    cat("ChromSCape::filter_scExp -",length(which(sel)), "cells pass the threshold of", min_cov_cell, "minimum reads and are lower than the ", quant_removal, 
+        "th centile of library size ~=", round(thresh[quant_removal + 1]), "reads.\n")
+  
+  # Create the binary matrix of cells >= 1000 counts if count >= bin_min_count, count = 1 else
+  bina_counts = counts(scExp)[,sel1000]
+  sel_below_2 = (bina_counts < bin_min_count)
+  bina_counts[sel_below_2] = 0
+  sel_above_1 = (bina_counts >= bin_min_count)
+  bina_counts[sel_above_1] = 1
+  
+  nCells_in_feature = Matrix::rowSums(bina_counts)
+  fixedFeature = names(which(nCells_in_feature > ((percentMin/100) * (ncol(bina_counts)))))  # Feature selection
+  if (verbose) 
+    cat("ChromSCape::filter_scExp -",length(fixedFeature), "features pass the threshold of", percentMin, " % of total cells 'ON', representing a minimum of", 
+        round((percentMin/100) * (ncol(bina_counts))), "cells.\n")
+  
+  scExp = scExp[, sel]
+  scExp = scExp[fixedFeature, ]
+  scExp = scater::calculateQCMetrics(scExp)
+  return(scExp)
 }
 
 #' Does SingleCellExperiment has genomic coordinates in features ?
@@ -144,12 +154,12 @@ filter_scExp <- function(scExp, min_cov_cell = 1600, quant_removal = 95, percent
 #' @return TRUE or FALSE
 #'
 has_genomic_coordinates <- function(scExp) {
-    stopifnot(is(scExp, "SingleCellExperiment"), !is.null(rownames(scExp)))
-    ID <- rownames(scExp)[1:min(10, length(rownames(scExp)))]
-    chr <- unlist(lapply(strsplit(ID, split = "_|-|:"), FUN = function(x) unlist(x)[1]))
-    
-    if (length(grep("chr|(^\\d+$|^X$|^Y$)", chr[1:min(10, length(chr))], ignore.case = T)) >= min(10, length(chr))) 
-        return(T) else return(F)
+  stopifnot(is(scExp, "SingleCellExperiment"), !is.null(rownames(scExp)))
+  ID = rownames(scExp)[1:min(10, length(rownames(scExp)))]
+  chr = unlist(lapply(strsplit(ID, split = "_|-|:"), FUN = function(x) unlist(x)[1]))
+  
+  if (length(grep("chr|(^\\d+$|^X$|^Y$)", chr[1:min(10, length(chr))], ignore.case = T)) >= min(10, length(chr))) 
+    return(T) else return(F)
 }
 
 #' Get SingleCellExperiment's genomic coordinates
@@ -157,19 +167,20 @@ has_genomic_coordinates <- function(scExp) {
 #' @param scExp A SingleCellExperiment object.
 #'
 #' @return A GRanges object of genomic coordinates.
-#'
+#' @importFrom GenomicRanges GRanges
+
 get_genomic_coordinates <- function(scExp) {
-    
-    stopifnot(is(scExp, "SingleCellExperiment"))
-    if (!has_genomic_coordinates(scExp)) 
-        stop("Feature names are not genomic coordinates")
-    
-    ID <- rownames(scExp)
-    chr <- unlist(lapply(strsplit(ID, split = "_|-|:"), FUN = function(x) unlist(x)[1]))
-    start <- unlist(lapply(strsplit(ID, split = "_|-|:"), FUN = function(x) unlist(x)[2]))
-    end <- unlist(lapply(strsplit(ID, split = "_|-|:"), FUN = function(x) unlist(x)[3]))
-    feature <- GRanges(data.frame(ID = ID, chr = chr, start = start, end = end))
-    return(feature)
+  
+  stopifnot(is(scExp, "SingleCellExperiment"))
+  if (!has_genomic_coordinates(scExp)) 
+    stop("Feature names are not genomic coordinates")
+  
+  ID = rownames(scExp)
+  chr = unlist(lapply(strsplit(ID, split = "_|-|:"), FUN = function(x) unlist(x)[1]))
+  start = unlist(lapply(strsplit(ID, split = "_|-|:"), FUN = function(x) unlist(x)[2]))
+  end = unlist(lapply(strsplit(ID, split = "_|-|:"), FUN = function(x) unlist(x)[3]))
+  feature = GRanges(data.frame(ID = ID, chr = chr, start = start, end = end))
+  return(feature)
 }
 
 #' Remove specific features (CNA, repeats)
@@ -185,37 +196,41 @@ get_genomic_coordinates <- function(scExp) {
 #' @export
 #'
 #' @examples
+#' @importFrom GenomicRanges GRanges makeGRangesFromDataFrame findOverlaps intersect
+#' @importFrom SummarizedExperiment rowRanges
+#' 
 exclude_features_scExp <- function(scExp, features_to_exclude, by = "region", verbose = T) {
-    
-    stopifnot(is(scExp, "SingleCellExperiment"), is.data.frame(features_to_exclude), is.character(by[1]))
-    if (!by[1] %in% c("region", "feature_name")) 
-        stop("ChromSCape::exclude_features_scExp - by must be either 'region' or 'feature_name'")
-    
-    if (by[1] == "region") {
-        if (!has_genomic_coordinates(scExp)) 
-            stop("ChromSCape::exclude_features_scExp - Feature names are not genomic coordinates")
-        regions <- rowRanges(scExp)
-        colnames(features_to_exclude)[1:3] = c("chr", "start", "stop")
-        excl_gr <- makeGRangesFromDataFrame(features_to_exclude, ignore.strand = TRUE, seqnames.field = c("chr"), start.field = c("start"), 
-            end.field = c("stop"))
-        ovrlps <- as.data.frame(findOverlaps(regions, excl_gr))[, 1]
-        if (length(unique(ovrlps) > 0)) 
-            scExp <- scExp[-unique(ovrlps), ]
-        if (verbose) 
-            cat("ChromSCape::exclude_features_scExp - Removed", length(unique(ovrlps)), "regions from the analysis.\n")
-    }
-    if (by[1] == "feature_name") {
-        if (has_genomic_coordinates(scExp)) 
-            warning("ChromSCape::exclude_features_scExp - Excluding by feature name while object feature names are genomic coordinates !")
-        features = rownames(scExp)
-        features_to_exclude = as.character(features_to_exclude[, 1])
-        ovrlps = intersect(features, features_to_exclude)
-        if (length(unique(ovrlps) > 0)) 
-            scExp <- scExp[-which(rownames(scExp) %in% ovrlps), ]
-        if (verbose) 
-            cat("ChromSCape::exclude_features_scExp - Removed", length(unique(ovrlps)), " features from the analysis.\n")
-    }
-    return(scExp)
+  
+  stopifnot(is(scExp, "SingleCellExperiment"), is.data.frame(features_to_exclude), is.character(by[1]))
+  if (!by[1] %in% c("region", "feature_name")) 
+    stop("ChromSCape::exclude_features_scExp - by must be either 'region' or 'feature_name'")
+  
+  if (by[1] == "region") {
+    if (!has_genomic_coordinates(scExp)) 
+      stop("ChromSCape::exclude_features_scExp - Feature names are not genomic coordinates")
+    regions = SummarizedExperiment::rowRanges(scExp)
+    colnames(features_to_exclude)[1:3] = c("chr", "start", "stop")
+    excl_gr = GenomicRanges::makeGRangesFromDataFrame(features_to_exclude, ignore.strand = TRUE,
+                                                       seqnames.field = c("chr"), start.field = c("start"),
+                                                       end.field = c("stop"))
+    ovrlps = as.data.frame(GenomicRanges::findOverlaps(regions, excl_gr))[, 1]
+    if (length(unique(ovrlps) > 0)) 
+      scExp = scExp[-unique(ovrlps), ]
+    if (verbose) 
+      cat("ChromSCape::exclude_features_scExp - Removed", length(unique(ovrlps)), "regions from the analysis.\n")
+  }
+  if (by[1] == "feature_name") {
+    if (has_genomic_coordinates(scExp)) 
+      warning("ChromSCape::exclude_features_scExp - Excluding by feature name while object feature names are genomic coordinates !")
+    features = rownames(scExp)
+    features_to_exclude = as.character(features_to_exclude[, 1])
+    ovrlps = GenomicRanges::intersect(features, features_to_exclude)
+    if (length(unique(ovrlps) > 0)) 
+      scExp = scExp[-which(rownames(scExp) %in% ovrlps), ]
+    if (verbose) 
+      cat("ChromSCape::exclude_features_scExp - Removed", length(unique(ovrlps)), " features from the analysis.\n")
+  }
+  return(scExp)
 }
 
 #' Preprocess scExp - Transcripts per Million (TPM)
@@ -223,13 +238,16 @@ exclude_features_scExp <- function(scExp, features_to_exclude, by = "region", ve
 #' @param scExp 
 #'
 #' @return A SingleCellExperiment object.
-#'
+#' @importFrom GenomicRanges width
+#' @importFrom SummarizedExperiment rowRanges
+#' @importFrom SingleCellExperiment counts normcounts
+#' @importFrom Matrix t colSums
 preprocess_TPM <- function(scExp) {
-    
-    size = BiocGenerics::width(SummarizedExperiment::rowRanges(scExp))
-    normcounts(scExp) = SingleCellExperiment::counts(scExp)/size
-    normcounts(scExp) = 10^6 * Matrix::t(Matrix::t(normcounts(scExp))/Matrix::colSums(normcounts(scExp)))
-    return(scExp)
+  
+  size = GenomicRanges::width(SummarizedExperiment::rowRanges(scExp))
+  SingleCellExperiment::normcounts(scExp) = SingleCellExperiment::counts(scExp)/size
+  SingleCellExperiment::normcounts(scExp) = 10^6 * Matrix::t(Matrix::t(SingleCellExperiment::normcounts(scExp))/Matrix::colSums(normcounts(scExp)))
+  return(scExp)
 }
 
 #' Preprocess scExp - Read per Kilobase Per Million (RPKM)
@@ -237,14 +255,17 @@ preprocess_TPM <- function(scExp) {
 #' @param scExp 
 #'
 #' @return A SingleCellExperiment object.
-#'
+#' @importFrom GenomicRanges width
+#' @importFrom SummarizedExperiment rowRanges
+#' @importFrom SingleCellExperiment counts normcounts
+#' @importFrom Matrix t colSums
 preprocess_RPKM <- function(scExp) {
-    
-    normcounts(scExp) = 10^9 * Matrix::t(Matrix::t(SingleCellExperiment::counts(scExp))/Matrix::colSums(SingleCellExperiment::counts(scExp)))
-    size = BiocGenerics::width(SummarizedExperiment::rowRanges(scExp))
-    normcounts(scExp) = normcounts(scExp)/size
-    
-    return(scExp)
+  
+  normcounts(scExp) = 10^9 * Matrix::t(Matrix::t(SingleCellExperiment::counts(scExp))/Matrix::colSums(SingleCellExperiment::counts(scExp)))
+  size = GenomicRanges::width(SummarizedExperiment::rowRanges(scExp))
+  normcounts(scExp) = SingleCellExperiment::normcounts(scExp)/size
+  
+  return(scExp)
 }
 
 #' Preprocess scExp - Counts Per Million (CPM)
@@ -252,10 +273,12 @@ preprocess_RPKM <- function(scExp) {
 #' @param scExp 
 #'
 #' @return A SingleCellExperiment object.
-#'
+#' @importFrom SummarizedExperiment rowRanges
+#' @importFrom SingleCellExperiment counts normcounts
+#' @importFrom Matrix t colSums
 preprocess_CPM <- function(scExp) {
-    normcounts(scExp) = 10^6 * Matrix::t(Matrix::t(SingleCellExperiment::counts(scExp))/Matrix::colSums(SingleCellExperiment::counts(scExp)))
-    return(scExp)
+  SingleCellExperiment::normcounts(scExp) = 10^6 * Matrix::t(Matrix::t(SingleCellExperiment::counts(scExp))/Matrix::colSums(SingleCellExperiment::counts(scExp)))
+  return(scExp)
 }
 
 #' Preprocess scExp - size only
@@ -263,11 +286,14 @@ preprocess_CPM <- function(scExp) {
 #' @param scExp 
 #'
 #' @return A SingleCellExperiment object.
-#'
+#' @importFrom GenomicRanges width
+#' @importFrom SummarizedExperiment rowRanges
+#' @importFrom SingleCellExperiment counts normcounts
+#' @importFrom Matrix t colSums
 preprocess_feature_size_only <- function(scExp) {
-    size = BiocGenerics::width(SummarizedExperiment::rowRanges(scExp))
-    normcounts(scExp) = SingleCellExperiment::counts(scExp)/size
-    return(scExp)
+  size = GenomicRanges::width(SummarizedExperiment::rowRanges(scExp))
+  SingleCellExperiment::normcounts(scExp) = SingleCellExperiment::counts(scExp)/size
+  return(scExp)
 }
 
 #' Normalize counts
@@ -281,13 +307,14 @@ preprocess_feature_size_only <- function(scExp) {
 #'
 #' @examples
 normalize_scExp <- function(scExp, type = c("RPKM", "CPM", "TPM", "feature_size_only")) {
-    stopifnot(type[1] %in% c("RPKM", "CPM", "TPM", "feature_size_only"), is(scExp, "SingleCellExperiment"))
-    if (!has_genomic_coordinates(scExp)) {
-        warning("ChromSCape::normalize_scExp - Switching to CPM normalization as features are not genomic coordinates.")
-        type = "CPM"
-    }
-    switch(type[1], RPKM = return(preprocess_RPKM(scExp)), TPM = return(preprocess_TPM(scExp)), feature_size_only = return(preprocess_feature_size_only(scExp)), 
-        CPM = return(preprocess_CPM(scExp)))
+  stopifnot(type[1] %in% c("RPKM", "CPM", "TPM", "feature_size_only"), is(scExp, "SingleCellExperiment"))
+  if (!has_genomic_coordinates(scExp)) {
+    warning("ChromSCape::normalize_scExp - Switching to CPM normalization as features are not genomic coordinates.")
+    type = "CPM"
+  }
+  switch(type[1], RPKM = return(preprocess_RPKM(scExp)), TPM = return(preprocess_TPM(scExp)),
+         feature_size_only = return(preprocess_feature_size_only(scExp)), 
+         CPM = return(preprocess_CPM(scExp)))
 }
 
 #' Add gene annotations to features
@@ -301,11 +328,14 @@ normalize_scExp <- function(scExp, type = c("RPKM", "CPM", "TPM", "feature_size_
 #' @export
 #'
 #' @examples
+#' @importFrom GenomicRanges makeGRangesFromDataFrame distanceToNearest
+#' @importFrom SummarizedExperiment rowRanges
+#' @importFrom dplyr mutate select group_by summarise_all
 feature_annotation_scExp <- function(scExp, ref = "hg38", reference_annotation = NULL) {
-    stopifnot(is(scExp, "SingleCellExperiment"), is.character(ref))
-    
-  if(is.null(rowRanges(scExp))) 
-        stop("ChromSCape::feature_annotation_scExp - The object doesn't have ranges of coordinates as rowData")
+  stopifnot(is(scExp, "SingleCellExperiment"), is.character(ref))
+  
+  if(is.null(SummarizedExperiment::rowRanges(scExp))) 
+    stop("ChromSCape::feature_annotation_scExp - The object doesn't have ranges of coordinates as rowData")
   
   if(is.null(reference_annotation) & !(ref %in% c("hg38", "mm10"))) 
     stop("ChromSCape::feature_annotation_scExp - If reference_annotation is null, ref must be either 'hg38' or
@@ -316,22 +346,28 @@ feature_annotation_scExp <- function(scExp, ref = "hg38", reference_annotation =
     eval(parse(text = paste0("data(",ref,".GeneTSS)")))
     reference_annotation = eval(parse(text = paste0("",ref,".GeneTSS")))
   } 
-
+  
   if(is.data.frame(reference_annotation)) 
-        reference_annotation = makeGRangesFromDataFrame(reference_annotation, keep.extra.columns = T)
-    
-    feature_ranges = rowRanges(scExp)
-    hits = GenomicRanges::distanceToNearest(feature_ranges, reference_annotation, ignore.strand = T, select = "all")
-    
-    annotFeat = data.frame(chr = as.character(seqnames(feature_ranges[queryHits(hits)])), start = as.character(start(feature_ranges[queryHits(hits)])), 
-        end = as.character(end(feature_ranges[queryHits(hits)])), Gene = as.character(reference_annotation@elementMetadata$gene)[subjectHits(hits)], 
-        distance = hits@elementMetadata$distance) %>% mutate(ID = paste(chr, start, end, sep = "_")) %>% select(ID, chr, start, 
-        end, Gene, distance)
-    
-    annotFeat = annotFeat %>% group_by(ID) %>% summarise_all(funs(paste(unique(.), collapse = ", "))) %>% as.data.frame()
-    annotFeat = annotFeat[match(rownames(scExp),annotFeat$ID),]
-    rowData(scExp) = annotFeat
-    return(scExp)
+    reference_annotation = GenomicRanges::makeGRangesFromDataFrame(reference_annotation, keep.extra.columns = T)
+  
+  feature_ranges = SummarizedExperiment::rowRanges(scExp)
+  hits = GenomicRanges::distanceToNearest(feature_ranges, reference_annotation, ignore.strand = T, select = "all")
+  
+  annotFeat = data.frame(
+    chr = as.character(GenomicRanges::seqnames(feature_ranges[queryHits(hits)])),
+    start = as.character(GenomicRanges::start(feature_ranges[queryHits(hits)])),
+    end = as.character(GenomicRanges::end(feature_ranges[queryHits(hits)])),
+    Gene = as.character(reference_annotation@elementMetadata$gene)[subjectHits(hits)], 
+    distance = hits@elementMetadata$distance) %>% 
+    dplyr::mutate(ID = paste(chr, start, end, sep = "_")) %>% 
+    dplyr::select(ID, chr, start,end, Gene, distance)
+  
+  annotFeat = annotFeat %>% dplyr::group_by(ID) %>% 
+    dplyr::summarise_all(funs(paste(unique(.), collapse = ", "))) %>%
+    as.data.frame()
+  annotFeat = annotFeat[match(rownames(scExp),annotFeat$ID),]
+  rowData(scExp) = annotFeat
+  return(scExp)
 }
 
 #' Choose perplexity depending on number of cells for Tsne
@@ -341,24 +377,24 @@ feature_annotation_scExp <- function(scExp, ref = "hg38", reference_annotation =
 #' @return A number between 5 and 30 to use in Rtsne function
 #'
 choose_perplexity <- function(dataset) {
-    stopifnot(!is.null(dataset), !is.null(dim(dataset)))
-    perplexity = 30
-    if (nrow(dataset) <= 200) {
-        perplexity = 20
-    }
-    if (nrow(dataset) <= 250) {
-        perplexity = 25
-    }
-    if (nrow(dataset) <= 150) {
-        perplexity = 15
-    }
-    if (nrow(dataset) <= 100) {
-        perplexity = 10
-    }
-    if (nrow(dataset) <= 50) {
-        perplexity = 5
-    }
-    perplexity
+  stopifnot(!is.null(dataset), !is.null(dim(dataset)))
+  perplexity = 30
+  if (nrow(dataset) <= 200) {
+    perplexity = 20
+  }
+  if (nrow(dataset) <= 250) {
+    perplexity = 25
+  }
+  if (nrow(dataset) <= 150) {
+    perplexity = 15
+  }
+  if (nrow(dataset) <= 100) {
+    perplexity = 10
+  }
+  if (nrow(dataset) <= 50) {
+    perplexity = 5
+  }
+  perplexity
 }
 
 #' Reduce dimensions (PCA, TSNE, UMAP)
@@ -373,29 +409,39 @@ choose_perplexity <- function(dataset) {
 #' @export
 #'
 #' @examples
+#' @importFrom Rtsne Rtsne
+#' @importFrom SummarizedExperiment assays
+#' @importFrom SingleCellExperiment counts normcounts reducedDims
+#' @importFrom Matrix t
 reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n = 50, verbose = T) {
-    stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(n), dimension_reductions[1] %in% c("PCA", "TSNE"))
-    
-    if (!"normcounts" %in% names(assays(scExp))) {
-        warning("ChromSCape::reduce_dims_scExp - The raw counts are not normalized, running dimensionality reduction on raw counts.")
-        mat = counts(scExp)
-    } else {
-        mat = normcounts(scExp)
-    }
-    
-    pca <- stats::prcomp(Matrix::t(mat), center = T, scale. = F)
-    pca = pca$x[, 1:n]
-    
-    set.seed(47)
-    # Reduce the perplexity if the number of samples is too low to avoid perplexity error
-    if ("TSNE" %in% dimension_reductions) 
-        tsne <- Rtsne(pca, dims = 2, pca = FALSE, theta = 0, perplexity = choose_perplexity(pca), verbose = verbose, max_iter = 1000)
+  stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(n), dimension_reductions[1] %in% c("PCA", "TSNE"))
+  
+  if (!"normcounts" %in% names(assays(scExp))) {
+    warning("ChromSCape::reduce_dims_scExp - The raw counts are not normalized,
+            running dimensionality reduction on raw counts.")
+    mat = SingleCellExperiment::counts(scExp)
+  } else {
+    mat = SingleCellExperiment::normcounts(scExp)
+  }
+  
+  pca = stats::prcomp(Matrix::t(mat), center = T, scale. = F)
+  pca = pca$x[, 1:n]
+  
+  set.seed(47)
+  # Reduce the perplexity if the number of samples is too low to avoid perplexity error
+  if ("TSNE" %in% dimension_reductions) {
+    tsne = Rtsne::Rtsne(pca, dims = 2, pca = FALSE, theta = 0,
+                         perplexity = choose_perplexity(pca), verbose = verbose,
+                         max_iter = 1000)
     tsne = as.data.frame(tsne$Y)
-    
-    # save PCA & T-SNE in scExp object
-    if ("TSNE" %in% dimension_reductions) 
-        reducedDims(scExp) <- list(PCA = as.data.frame(pca), TSNE = tsne) else reducedDims(scExp) <- list(PCA = pca)
-    return(scExp)
+  }
+  
+  # save PCA & T-SNE in scExp object
+  if ("TSNE" %in% dimension_reductions) 
+    SingleCellExperiment::reducedDims(scExp) = list(PCA = as.data.frame(pca), TSNE = tsne) else
+      reducedDims(scExp) = list(PCA = pca)
+  
+  return(scExp)
 }
 
 #' Table of cells before / after QC
@@ -404,22 +450,31 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
 #' @param annot A raw annotation data.frame of cells before filtering.
 #'
 #' @return A formatted kable in HTML. 
-#'
+#' @importFrom SingleCellExperiment colData
+#' @importFrom dplyr bind_rows tibble left_join
+#' @importFrom kableExtra kable kable_styling group_rows
+#' 
 num_cell_after_QC_filt_scExp <- function(scExp, annot){
   
   stopifnot(is(scExp, "SingleCellExperiment"), !is.null(annot))
   
-  table <- as.data.frame(table(annot$sample_id))
-  table_filtered <- as.data.frame(table(colData(scExp)$sample_id))
+  table = as.data.frame(table(annot$sample_id))
+  table_filtered = as.data.frame(table(colData(scExp)$sample_id))
   
   colnames(table) = c("Sample","#Cells Before Filtering")
   rownames(table) = NULL 
   colnames(table_filtered) = c("Sample","#Cells After Filtering")
   rownames(table_filtered) = NULL 
   
-  table_both = left_join(table,table_filtered, by=c("Sample"))
+  table_both = dplyr::left_join(table,table_filtered, by=c("Sample"))
   table_both[,1] = as.character(table_both[,1])
   table_both = table_both %>% 
-    bind_rows(., tibble(Sample="",`#Cells Before Filtering`=sum(table_both[,2]),`#Cells After Filtering`=sum(table_both[,3]) ) )
-  table_both %>% kable(escape=F, align="c") %>% kable_styling(c("striped", "condensed"), full_width = T) %>% group_rows("Total cell count", dim(table_both)[1], dim(table_both)[1])
+    dplyr::bind_rows(., dplyr::tibble(Sample="",
+                                      `#Cells Before Filtering`=sum(table_both[,2]),
+                                      `#Cells After Filtering`=sum(table_both[,3]) )
+                     )
+  
+  table_both %>% kableExtra::kable(escape=F, align="c") %>% 
+    kableExtra::kable_styling(c("striped", "condensed"), full_width = T) %>%
+    kableExtra::group_rows("Total cell count", dim(table_both)[1], dim(table_both)[1])
 }

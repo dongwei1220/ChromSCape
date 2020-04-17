@@ -57,3 +57,6 @@ This functions takes as input a SingleCellExperiment object with consclust, the 
 'one_vs_rest' or 'pairwise', the adjusted p-value threshold (qval.th) and the fold-change threshold (cdiff.th). 
 It outputs a SingleCellExperiment object containing a differential list.
 }
+\examples{
+
+}

@@ -67,6 +67,9 @@ This functions takes as input a SingleCellExperiment object that must have 'PCA'
 and outputs a SingleCellExperiment object containing consclust list calculated cluster consensus
  and item consensus scores in metadata.
 }
+\examples{
+
+}
 \references{
 ConsensusClusterPlus package by 
 Wilkerson, M.D., Hayes, D.N. (2010). ConsensusClusterPlus: a class discovery tool 
