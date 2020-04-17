@@ -112,8 +112,7 @@ test_that("Step 4 : Normalize ", {
   expect_equivalent(master$norm_mat, normcounts(scExp))
 })
 
-reference_annotation = read.table("annotation/hg38/Gencode_TSS_pc_lincRNA_antisense.bed",col.names = c("chr","start","end","Gene"))
-scExp = feature_annotation_scExp(scExp,reference_annotation)
+scExp = feature_annotation_scExp(scExp,ref="hg38")
 
 test_that("Step 5 : feature annotation ", {
   load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected_annotFeat.RData",master)
@@ -155,7 +154,6 @@ test_that("Step 8 : correlation & hiearchical clust", {
   expect_equal(master$hc_cor$order,scExp@metadata$hc_cor$order)
   expect_equal(master$hc_cor$labels,scExp@metadata$hc_cor$labels)
   expect_equal(master$hc_cor$dist.method,scExp@metadata$hc_cor$dist.method)
-  expect_equal(master$hc_cor$call$method,scExp@metadata$hc_cor$call$method)
   expect_equal(cor(t(master$pca)),reducedDim(scExp,"Cor") )
   expect_equal(colnames(cor(t(master$pca))),colnames(reducedDim(scExp,"Cor")) )
   expect_equal(rownames(cor(t(master$pca))),rownames(reducedDim(scExp,"Cor")) )
@@ -208,7 +206,7 @@ test_that("Step 11 : correlation consensus hierarchical clustering - choose clus
 })
 
 
-scExp_cf = differential_analysis_scExp(scExp_cf, nclust = 2, qval.th = 0.4, cdiff.th = 0.3)
+scExp_cf = differential_analysis_scExp(scExp_cf, qval.th = 0.4, cdiff.th = 0.3)
 
 test_that("Step 12 : differential analysis between clusters", {
   
@@ -223,16 +221,8 @@ test_that("Step 12 : differential analysis between clusters", {
 
 })
 
-load("annotation/hg38/MSigDB.RData", master)
-MSIG.ls = master$MSIG.ls
-MSIG.gs = master$MSIG.gs
-GencodeGenes = read.table("annotation/hg38/Gencode_TSS_pc_lincRNA_antisense.bed")
-GencodeGenes = as.character(unique(GencodeGenes$V4))
-
-scExp_cf = gene_set_enrichment_analysis_scExp(scExp_cf, nclust = 2, MSIG.ls = MSIG.ls , MSIG.gs = MSIG.gs,
-                                              GencodeGenes = GencodeGenes, qval.th = 0.4, cdiff.th = 0.3,
+scExp_cf = gene_set_enrichment_analysis_scExp(scExp_cf,ref = "hg38", qval.th = 0.4, cdiff.th = 0.3,
                                               use_peaks = F )
-
 
 test_that("Step 12 : GSEA of genes associated to differential loci:", {
   
