@@ -9,6 +9,8 @@ shinyAppServer <- function(input, output, session) {
   
   #Initializating user experience functions 
   js$init_directory() #Getting cookie for the directory
+  print(js$closeWindow)
+  print(js$enableTab)
   # addResourcePath("www", system.file("www", package="ChromSCape"))
   tab_vector = c("pca_plots","cor_clustering","cons_clustering","peak_calling","diff_analysis","enrich_analysis") #list of all lockable tabs
   unlocked = reactiveValues(list = list(selected_reduced_dataset = FALSE,pca = FALSE,tsne = FALSE,cor_clust_plot = FALSE,filtered_datasets = FALSE,affectation = FALSE,diff_my_res = FALSE)) #list of all required items to unlock a tab

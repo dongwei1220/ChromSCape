@@ -236,7 +236,7 @@ test_that("Step 12 : GSEA of genes associated to differential loci:", {
   all_equal(annotFeat_long_original$start,annotFeat_long_new$start)
   all_equal(annotFeat_long_original$end,annotFeat_long_new$end)
   all_equal(annotFeat_long_original$Gene,annotFeat_long_new$Gene)
-
+  
   annotFeat_long_original$distance[as.numeric(annotFeat_long_original$distance)>0] = as.character(as.numeric(
     annotFeat_long_original$distance[as.numeric(annotFeat_long_original$distance)>0]) -2)
   all_equal(annotFeat_long_original$distance,annotFeat_long_new$distance) # diff of -2 for >0 regions (#annotFeat)
