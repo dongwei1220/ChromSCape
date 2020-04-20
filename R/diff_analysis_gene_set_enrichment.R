@@ -227,9 +227,8 @@ gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref 
   res = scExp@metadata$diff$res
   diff = scExp@metadata$diff
   
-  annotFeat_long = as.data.frame(cSplit(as.data.frame(SingleCellExperiment::rowData(scExp)),
-                                        splitCols="Gene", sep=", ", direction="long"))
-  
+  annotFeat_long = as.data.frame(tidyr::separate_rows(as.data.frame(SingleCellExperiment::rowData(scExp)), Gene, sep = ", "))
+                                        
   for(i in 1:length(groups)){
     gp = groups[i]
     ref = diff$refs[i]
