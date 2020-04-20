@@ -1,7 +1,25 @@
+#' geco.distPearson
+#'
+#' @param m 
+#'
+#' @return
+#' @export
+#'
 geco.distPearson <- function(m) {
     as.dist(1 - cor(t(m), method = "pearson"))
 }
 
+#' geco.CompareWilcox
+#'
+#' @param dataMat 
+#' @param annot 
+#' @param ref 
+#' @param groups 
+#' @param featureTab 
+#'
+#' @return
+#' @export
+#'
 geco.CompareWilcox <- function(dataMat = NULL, annot = NULL, ref = NULL,
                                groups = NULL, featureTab = NULL) {
     res = featureTab
@@ -38,12 +56,30 @@ geco.CompareWilcox <- function(dataMat = NULL, annot = NULL, ref = NULL,
 }
 
 
+#' geco.changeRange
+#'
+#' @param v 
+#' @param newmin 
+#' @param newmax 
+#'
+#' @return
+#' @export
+#'
 geco.changeRange <- function(v, newmin = 1, newmax = 10) {
     oldmin <- min(v, na.rm = TRUE)
     oldmax <- max(v, na.rm = TRUE)
     newmin + ((newmax - newmin) * (v - oldmin)/(oldmax - oldmin))
 }
 
+#' geco.H1proportion
+#'
+#' @param pv 
+#' @param lambda 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geco.H1proportion <- function(pv = NA, lambda = 0.5) {
     pi1 = 1 - mean(pv > lambda, na.rm = TRUE)/(1 - lambda)
     if (pi1 < 0) {
@@ -57,6 +93,16 @@ geco.H1proportion <- function(pv = NA, lambda = 0.5) {
     return(pi1)
 }
 
+#' geco.enrichmentTest
+#'
+#' @param gene.sets 
+#' @param mylist 
+#' @param possibleIds 
+#' @param sep 
+#' @param silent 
+#'
+#' @return
+#' @export
 geco.enrichmentTest <- function(gene.sets, mylist, possibleIds, sep = ";", silent = F) {
     possibleIds <- unique(possibleIds)
     mylist <- unique(mylist)
@@ -89,6 +135,22 @@ geco.enrichmentTest <- function(gene.sets, mylist, possibleIds, sep = ";", silen
     tmp
 }
 
+#' geco.hclustAnnotHeatmapPlot
+#'
+#' @param x 
+#' @param hc 
+#' @param hmColors 
+#' @param anocol 
+#' @param xpos 
+#' @param ypos 
+#' @param dendro.cex 
+#' @param xlab.cex 
+#' @param hmRowNames 
+#' @param hmRowNames.cex 
+#'
+#' @return
+#' @export
+#'
 geco.hclustAnnotHeatmapPlot <- function(x = NULL, hc = NULL, hmColors = NULL, anocol = NULL, xpos = c(0.1, 0.9, 0.114, 0.885), ypos = c(0.1, 
     0.5, 0.5, 0.6, 0.62, 0.95), dendro.cex = 1, xlab.cex = 0.8, hmRowNames = FALSE, hmRowNames.cex = 0.5) {
     # layout(matrix(1:3,3),heights=lhei)
@@ -104,6 +166,18 @@ geco.hclustAnnotHeatmapPlot <- function(x = NULL, hc = NULL, hmColors = NULL, an
     }
 }
 
+#' geco.imageCol
+#'
+#' @param matcol 
+#' @param strat 
+#' @param xlab.cex 
+#' @param ylab.cex 
+#' @param drawLines 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
 geco.imageCol <- function(matcol = NULL, strat = NULL, xlab.cex = 0.5, ylab.cex = 0.5, drawLines = c("none", "h", "v", "b")[1], 
     ...) {
     if (is.null(ncol(matcol))) {
@@ -154,6 +228,21 @@ geco.imageCol <- function(matcol = NULL, strat = NULL, xlab.cex = 0.5, ylab.cex 
 }
 
 
+#' geco.annotToCol2
+#'
+#' @param annotS 
+#' @param annotT 
+#' @param missing 
+#' @param anotype 
+#' @param maxnumcateg 
+#' @param categCol 
+#' @param quantitCol 
+#' @param plotLegend 
+#' @param plotLegendFile 
+#'
+#' @return
+#' @export
+#'
 geco.annotToCol2 <- function(annotS = NULL, annotT = NULL, missing = c("", NA), anotype = NULL, maxnumcateg = 2, categCol = NULL, 
     quantitCol = NULL, plotLegend = T, plotLegendFile = NULL) {
     if (is.null(ncol(annotS))) {
@@ -243,6 +332,17 @@ geco.annotToCol2 <- function(annotS = NULL, annotT = NULL, missing = c("", NA), 
     as.matrix(anocol)
 }
 
+#' Title
+#'
+#' @param mat 
+#' @param margin 
+#' @param groups 
+#' @param method 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geco.groupMat <- function(mat = NA, margin = 1, groups = NA, method = "mean") {
     if (!method %in% c("mean", "median")) {
         print("Method must be mean or median")

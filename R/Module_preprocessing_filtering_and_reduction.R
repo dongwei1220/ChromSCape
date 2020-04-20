@@ -3,13 +3,13 @@ moduleFiltering_and_ReductionUI <- function(id, label = "Filtering_and_Reduction
 }
 
 moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_name, min_cov_cell, percentMin, quant_removal, datamatrix, 
-                                          annot_raw, data_folder, annotation_id, exclude_regions, annotCol) {
+                                          annot_raw, data_folder, annotation_id, exclude_regions, annotCol, doBatchCorr,
+                                          num_batches, batch_names, batch_sels) {
     withProgress(message = "Processing data set...", value = 0, {
         
-        batch_string <- "uncorrected"
         
         ### 1. Data loading ###
-        
+        batch_string <- if (doBatchCorr()) "batchCorrected" else "uncorrected"
         incProgress(amount = 0.1, detail = paste("Loading raw data..."))
         
         scExp = create_scExp(datamatrix(), annot_raw(), remove_zero_cells = T, remove_zero_features = T)
@@ -69,7 +69,7 @@ moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_na
         
         ### 8. Save data ###
         save(scExp, file = file.path(data_folder(), "datasets", raw_dataset_name(), "QC_filtering", paste0(paste(raw_dataset_name(), 
-                                                                                                                 min_cov_cell(), percentMin(), quant_removal(), batch_string, sep = "_"), ".RData")))
+                                                                                                                 min_cov_cell(), percentMin(), quant_removal(), batch_string(), sep = "_"), ".RData")))
         
         print("Filtering & Reduction done !")
     })

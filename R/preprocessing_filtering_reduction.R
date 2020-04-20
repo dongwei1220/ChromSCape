@@ -413,7 +413,8 @@ choose_perplexity <- function(dataset) {
 #' @importFrom SummarizedExperiment assays
 #' @importFrom SingleCellExperiment counts normcounts reducedDims
 #' @importFrom Matrix t
-reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n = 50, verbose = T) {
+reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n = 50, batch_correction = F,
+                              batch_list = NULL, verbose = T) {
   stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(n), dimension_reductions[1] %in% c("PCA", "TSNE"))
   
   if (!"normcounts" %in% names(assays(scExp))) {
@@ -424,9 +425,48 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
     mat = SingleCellExperiment::normcounts(scExp)
   }
   
-  pca = stats::prcomp(Matrix::t(mat), center = T, scale. = F)
-  pca = pca$x[, 1:n]
+  if(batch_correction && !is.list(batch_list) ) 
+    stop("ChromSCape::reduce_dims_scExp - If doing batch correction, batch_list must be a list
+         containing the samples IDs of each batch.")
   
+  batches <- list()
+  
+  if(batch_correction){
+    print("Running Batch Correction ...")
+    num_batches = length(batch_list)
+    batch_names = names(batch_list)
+    
+    SummarizedExperiment::colData(scExp)$batch_name <- "unspecified"
+    
+    for(i in 1:num_batches){
+      for(s_id in batch_list[[i]]){
+        SummarizedExperiment::colData(scExp)[scExp$sample_id==s_id, "batch_name"] <- batch_names[i]
+      }
+    }
+    
+    adj_annot <- data.frame()  
+    b_names <- unique(scExp$batch_name)
+    
+    pca <- sparse_prcomp_irlba(Matrix::t(mat),n=50,retx=T,center=T, scale. = F)
+    rownames(pca$rotation) = rownames(norm_mat)
+    
+    for(i in 1:length(b_names)){
+      b_name <- b_names[i]
+      batches[[i]] <- pca$x[scExp$batch_name==b_name,]
+      adj_annot <- rbind(adj_annot, SummarizedExperiment::colData(scExp)[scExp$batch_name==b_name, ])
+    }
+
+    mnn.out <- do.call(fastMNN, c(batches, list(k=25, d=50, ndist=3, pc.input=T, auto.order=T, cos.norm=F,compute.variances = T)))
+    pca$x <- mnn.out$corrected
+    colnames(pca$x) <- paste0("PC", 1:dim(pca$x)[2])
+    SummarizedExperiment::colData(scExp) <- adj_annot
+    rownames(pca$x) = scExp$cell_id
+  
+  } else {
+    scExp$batch_name = "batch_1"
+    pca = stats::prcomp(Matrix::t(mat), center = T, scale. = F)
+    pca = pca$x[, 1:n]
+  }
   set.seed(47)
   # Reduce the perplexity if the number of samples is too low to avoid perplexity error
   if ("TSNE" %in% dimension_reductions) {

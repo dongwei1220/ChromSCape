@@ -12,7 +12,6 @@ shinyServer(function(input, output, session) {
   
   #Initializating user experience functions
   js$init_directory() #Getting cookie for the directory
-  print(js$init_directory)
 
   # addResourcePath("www", system.file("www", package="ChromSCape"))
   tab_vector = c("pca_plots",
@@ -45,7 +44,8 @@ shinyServer(function(input, output, session) {
   init <- reactiveValues(data_folder = NULL, datamatrix = data.frame(), annot_raw = data.frame(), available_raw_datasets = NULL,
                          available_reduced_datasets = NULL, available_filtered_datasets = NULL)
   reduced_datasets <- reactive({ if (is.null(init$available_reduced_datasets)) c() else gsub('.{6}$', '', basename(init$available_reduced_datasets)) })
-  annotCol <- reactive({ c("sample_id","total_counts") })
+  
+  annotCol <- reactive({ c("sample_id","total_counts","batch_id") })
   
   
   observeEvent(dataset_name(), { # application header (tells you which data set is selected)
@@ -55,7 +55,8 @@ shinyServer(function(input, output, session) {
   })
   
   get.available.reduced.datasets <- function(){
-    list.files(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = TRUE, pattern="[[:print:]]+_[[:digit:]]+_[[:digit:]]+(.[[:digit:]]+)?_[[:digit:]]+_(uncorrected).RData")
+    list.files(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = TRUE,
+               pattern="[[:print:]]+_[[:digit:]]+_[[:digit:]]+(.[[:digit:]]+)?_[[:digit:]]+_(uncorrected|batchCorrected).RData")
   }
   
   get.available.filtered.datasets <- function(name, preproc){
@@ -79,6 +80,8 @@ shinyServer(function(input, output, session) {
       }}
   }
   
+  batchUsed <- reactive({ grepl("batchCorrected", input$selected_reduced_dataset) })
+  
   ###############################################################
   # 1. Select or upload dataset
   ###############################################################
@@ -94,7 +97,20 @@ shinyServer(function(input, output, session) {
   output$exclude_file <- renderUI({ if(input$exclude_regions){
     fileInput("exclude_file", ".bed file containing the regions to exclude from data set:", multiple = FALSE, accept = c(".bed"))
   }})
-  
+  output$num_batches <- renderUI({ if(input$do_batch_corr){
+    selectInput("num_batches","Select number of batches (each can have one or multiple samples):", choices=c(2:10))
+  }})
+  output$batch_names <- renderUI({ if(input$do_batch_corr){
+    lapply(1:input$num_batches, function(i){
+      textInput(paste0('batch_name_', i), paste0('Batch name ', i, ':'), value = paste0('batch', i))
+    })
+  }})
+  batch_choice <- reactive({ unique(init$annot_raw$sample_id) })
+  output$batch_sel <- renderUI({ if(input$do_batch_corr & dim(init$annot_raw)[1] > 0){
+    lapply(1:input$num_batches, function(i){
+      selectInput(paste0('batch_sel_', i), paste0('Select samples for batch ', i, ':'), choices=batch_choice(), multiple=TRUE)
+    })
+  }})
   
   #Look for existing cookie
   observeEvent(
@@ -239,13 +255,18 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$dim_reduction, {  # perform QC filtering and dim. reduction
+    num_batches <- if(is.null(input$num_batches)) 0 else input$num_batches
+    batch_names <- if(is.null(input$num_batches)) c() else sapply(1:input$num_batches, function(i){ input[[paste0('batch_name_', i)]] })
+    batch_sels <- if(is.null(input$num_batches)) list() else lapply(1:input$num_batches, function(i){ input[[paste0('batch_sel_', i)]] })
+    
     annotationId <- annotation_id_norm()
     exclude_regions <- if(input$exclude_regions) setNames(read.table(
       input$exclude_file$datapath, header = FALSE, stringsAsFactors = FALSE), c("chr", "start", "stop")) else NULL
   
     callModule(moduleFiltering_and_Reduction, "Module_preprocessing_filtering_and_reduction", reactive({input$selected_raw_dataset}), reactive({input$min_coverage_cell}),
                reactive({input$min_cells_window}), reactive({input$quant_removal}), reactive({init$datamatrix}), reactive({init$annot_raw}),
-               reactive({init$data_folder}),reactive({annotationId}), reactive({exclude_regions}), reactive({annotCol()}) )
+               reactive({init$data_folder}),reactive({annotationId}), reactive({exclude_regions}), reactive({annotCol()}),reactive({input$do_batch_corr}),
+               reactive({num_batches}),reactive({batch_names}), reactive({batch_sels}))
     init$available_reduced_datasets <- get.available.reduced.datasets()
     updateActionButton(session, "dim_reduction", label="Processed and saved successfully", icon = icon("check-circle"))
   })
@@ -258,6 +279,7 @@ shinyServer(function(input, output, session) {
    input$min_coverage_cell
    input$quant_removal
    input$min_cells_window}, {
+   input$do_batch_corr}, {
    updateActionButton(session, "dim_reduction", label="Apply and save data set", icon = character(0))
   })
   
@@ -658,8 +680,8 @@ shinyServer(function(input, output, session) {
 output$cons_clust_anno_plot <- renderPlot({
   if(! is.null(scExp_cf())){
     if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
-      colors <- SummarizedExperiment::colData(scExp_cf())[,"chromatin_group_color"]
-      heatmap(SingleCellExperiment::reducedDim(scExp_cf(),"ConsensusAssociation"),
+      colors <- SummarizedExperiment::colData(scExp_cf())[scExp_cf()@metadata$hc_consensus_association$order,"chromatin_group_color"]
+      heatmap(SingleCellExperiment::reducedDim(scExp_cf(),"ConsensusAssociation")[scExp_cf()@metadata$hc_consensus_association$order,],
               Colv = as.dendrogram(scExp_cf()@metadata$hc_consensus_association),
               Rowv = NA, symm = FALSE, scale="none", col = grDevices::colorRampPalette(c("white", "blue"))(100),
               na.rm = TRUE, labRow = F, labCol = F, mar = c(5, 5), main = paste("consensus matrix k=", input$nclust, sep=""),
@@ -991,8 +1013,9 @@ output$anno_cc_box <- renderUI({
   observeEvent(input$do_wilcox, {  # perform differential analysis based on wilcoxon test
     withProgress(message='Performing differential analysis...', value = 0, {
       incProgress(amount = 0.2, detail = paste("Initializing DA"))
+      if(batchUsed()) block = T else block = F
       scExp_cf(differential_analysis_scExp(scExp_cf(), de_type = input$de_type,
-                                                cdiff.th = input$cdiff.th, qval.th = input$qval.th)) 
+                                           cdiff.th = input$cdiff.th, qval.th = input$qval.th), block) 
       incProgress(amount = 0.6, detail = paste("Finished DA"))
       data = list("scExp_cf" = scExp_cf())
       save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "diff_analysis_GSEA",
@@ -1134,9 +1157,7 @@ output$anno_cc_box <- renderUI({
 
   annotFeat_long <- reactive({
     af = as.data.frame(rowData(scExp_cf()))
-    print(af$Gene[1:5])
     af = tidyr::separate_rows(af, Gene,sep = ", ")
-    print(af$Gene[1:5])
     af
   })
   
@@ -1263,10 +1284,13 @@ output$anno_cc_box <- renderUI({
   
   output$region_sel <- renderUI({
     req(input$gene_sel)
-
-    subset <- annotFeat_long()[annotFeat_long()$Gene==input$gene_sel, ]
+    print(input$gene_sel)
+    print(head(annotFeat_long()$Gene))
+    print(input$gene_sel %in% annotFeat_long()$Gene)
+    print(which(annotFeat_long()$Gene==input$gene_sel))
+    subset <- annotFeat_long()[which(annotFeat_long()$Gene==input$gene_sel), ]
     subset <- subset[order(subset$distance),]
-    print(susbset)
+    print(subset)
     regions <- paste0(subset$ID, " (distance to gene TSS: ", subset$distance, ")")
     selectInput("region_sel", "Select associated genomic region:", choices = regions)
   })
