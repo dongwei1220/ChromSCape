@@ -1,5 +1,6 @@
 library(shiny)
-
+library(shinyjs)
+# 
 shinyUI(shinydashboard::dashboardPage(skin='green',
                             shinydashboard::dashboardHeader(title = "ChromSCape"),
                             shinydashboard::dashboardSidebar(
@@ -58,7 +59,7 @@ shinyUI(shinydashboard::dashboardPage(skin='green',
                                   #Left Panel
                                   column(width=6,
                                          shinydashboard::box(title="Select local data directory", width = NULL, status="warning", solidHeader=T,
-                                             column(12, align="left", directoryInput('data_folder', label = 'select a directory', value = '~')),
+                                             column(12, align="left", shinyDirectoryInput::directoryInput('data_folder', label = 'select a directory', value = '~')),
                                              column(12, align="left", textOutput("data_folder_info"))),
                                          shinydashboard::box(title="Select preprocessed data set", width = NULL, status="warning", solidHeader=T,
                                              column(12, align="left",
@@ -190,7 +191,7 @@ shinyUI(shinydashboard::dashboardPage(skin='green',
                                                     htmlOutput("peak_calling_system"), hr(),
                                                     sliderInput("peak_distance_to_merge", "Select distance of peaks to merge:", min=0, max=50000, value=5000, step=1000),
                                                     uiOutput("bam_upload")),
-                                             column(4, align="left", uiOutput("pc_k_selection"),
+                                             column(4, align="left", textOutput("pc_k_selection"),
                                                     selectInput("pc_stat","Select statistic for cutoff:", choices=c("p.value", "q.value"), selected="p.value")),
                                              column(8, align="left", br(), br(), br(), br(),
                                                     sliderInput("pc_stat_value", "select significance threshold:", min=0, max=0.25, value=0.05, step=0.01)),
@@ -208,7 +209,7 @@ shinyUI(shinydashboard::dashboardPage(skin='green',
                                   column(width=6,
                                          shinydashboard::box(title="Parameter selection", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", textOutput("diff_analysis_info"), br()),
-                                             column(5, align="left", htmlOutput("selected_k")),
+                                             column(5, align="left", textOutput("selected_k")),
                                              column(5, align="left", selectInput("de_type", "Select type of cluster comparison:", choices=c("one_vs_rest","pairwise"))),
                                              column(12, align="left", sliderInput("qval.th", "adjusted p-value to select significant locations:", min=0.01, max=0.4, value=0.01, step=0.01),
                                                     sliderInput("cdiff.th", "Minimum log-fold change to select significant locations:", min=0, max=3, value=1, step=0.01),

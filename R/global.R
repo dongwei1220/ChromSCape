@@ -5,9 +5,9 @@
 #' @importFrom shinyDirectoryInput choose.dir directoryInput readDirectoryInput updateDirectoryInput
 #' @importFrom shinyjs useShinyjs extendShinyjs html  
 #' @importFrom Matrix rowMeans
-#' @importFrom tidyr %>%
-#' @importFrom dplyr select mutate
+#' @importFrom dplyr select mutate %>%
 #' @importFrom viridis scale_color_viridis
+#' @importFrom tidyr separate_rows
 #' @import shiny
 #' @import ggplot2
 NULL

@@ -1,6 +1,9 @@
 
 shinyServer(function(input, output, session) {
   
+  library(ggplot2)
+  library(dplyr)
+  
   options(shiny.maxRequestSize = 5000*1024^2) # allow upload of files with max 5GB
   
   ###############################################################
@@ -587,7 +590,7 @@ shinyServer(function(input, output, session) {
       scExp_cf(myData$data$scExp_cf)
       if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
         updateSelectInput(session, inputId = "nclust", label = "Select number of clusters:", choices=c(2:10),
-                            selected = n_distinct(SummarizedExperiment::colData(scExp_cf())$chromatin_group))
+                            selected = dplyr::n_distinct(SummarizedExperiment::colData(scExp_cf())$chromatin_group))
       }
     } else {
       NULL
@@ -655,8 +658,8 @@ shinyServer(function(input, output, session) {
 output$cons_clust_anno_plot <- renderPlot({
   if(! is.null(scExp_cf())){
     if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
-      colors <- SummarizedExperiment::colData(scExp_cf())[scExp_cf()@metadata$hc_consensus_association$order,"chromatin_group_color"]
-      heatmap(SingleCellExperiment::reducedDim(scExp_cf(),"ConsensusAssociation")[scExp_cf()@metadata$hc_consensus_association$order,],
+      colors <- SummarizedExperiment::colData(scExp_cf())[,"chromatin_group_color"]
+      heatmap(SingleCellExperiment::reducedDim(scExp_cf(),"ConsensusAssociation"),
               Colv = as.dendrogram(scExp_cf()@metadata$hc_consensus_association),
               Rowv = NA, symm = FALSE, scale="none", col = grDevices::colorRampPalette(c("white", "blue"))(100),
               na.rm = TRUE, labRow = F, labCol = F, mar = c(5, 5), main = paste("consensus matrix k=", input$nclust, sep=""),
@@ -838,8 +841,8 @@ output$anno_cc_box <- renderUI({
       return(paste0("<b>You are running on a non unix system, peak calling is not available, you can move directly to differential analysis.</b> "))
     }
     })
-  output$pc_k_selection <- renderUI({
-    selectInput("pc_k_selection", "Select number of clusters:", choices = 2:10)
+  output$pc_k_selection <- renderText({
+    paste0( "Number of clusters selected  = ", dplyr:::n_distinct(SummarizedExperiment::colData(scExp_cf())$chromatin_group))
   })
   
   output$bam_upload <- renderUI({
@@ -947,7 +950,9 @@ output$anno_cc_box <- renderUI({
   output$diff_analysis_info <- renderText({"Differential analysis will be performed using the cluster assignment obtained on the Consensus clustering page. To use a different number of clusters, 
     go to this page and first perform the clustering, then select the preferred number of clusters in the box on the right in order to display and save the data. 
     It will then appear here for selection."})
-  output$selected_k <- renderUI({ selectInput("selected_k", "Select number of clusters:", choices = 2:10) })
+  output$selected_k <- renderText({
+    paste0( "Number of clusters selected  = ", dplyr:::n_distinct(SummarizedExperiment::colData(scExp_cf())$chromatin_group))
+  })
   output$contrib_hist <- renderUI({ if(input$only_contrib_cells){ plotOutput("contrib_hist_p", height = 250, width = 500) }})
   output$contrib_hist_p <- renderPlot(contrib_hist_plot())
   contrib_hist_plot <- reactive({
@@ -1127,9 +1132,13 @@ output$anno_cc_box <- renderUI({
     unique(myData$MSIG.gs$Class)
   })
 
-
-
-  annotFeat_long <- reactive({ as.data.frame(cSplit( rowData(scExp_cf()), splitCols="Gene", sep=", ", direction="long")) })
+  annotFeat_long <- reactive({
+    af = as.data.frame(rowData(scExp_cf()))
+    print(af$Gene[1:5])
+    af = tidyr::separate_rows(af, Gene,sep = ", ")
+    print(af$Gene[1:5])
+    af
+  })
   
   output$enr_info <- renderText({"Enrichment will be performed based on the significant genes per cluster that were computed on the previous page. 
     Please make sure that you have run the differential analysis on the clustering that you prefer before running the enrichment analysis."})

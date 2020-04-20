@@ -30,6 +30,7 @@ Imports:
     png,
     gridExtra,
     DT,
+    scran,
     scater,
     ConsensusClusterPlus,
     Rtsne,
