@@ -17,6 +17,7 @@ shinyjs.save_cookie = function(params){
                                             var my_cookie = Cookies.get('path'); 
                                             Shiny.onInputChange("path_cookie", my_cookie);/*Update value shiny variable path_cookie*/
 };
+
 shinyjs.disableTab = function(name) {
    /* var tab = $('.nav li a[data-value=' + name + ']');
   tab.bind('click.tab', function(e) {
