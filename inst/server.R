@@ -1,5 +1,5 @@
 
-shinyAppServer <- function(input, output, session) {
+shinyServer(function(input, output, session) {
   
   options(shiny.maxRequestSize = 5000*1024^2) # allow upload of files with max 5GB
   
@@ -7,15 +7,17 @@ shinyAppServer <- function(input, output, session) {
   # 0. Global variables and functions
   ###############################################################
   
-  #Initializating user experience functions 
+  #Initializating user experience functions
   js$init_directory() #Getting cookie for the directory
-  print(js$closeWindow)
-  print(js$enableTab)
+  print(js$init_directory)
+
   # addResourcePath("www", system.file("www", package="ChromSCape"))
   tab_vector = c("pca_plots","cor_clustering","cons_clustering","peak_calling","diff_analysis","enrich_analysis") #list of all lockable tabs
   unlocked = reactiveValues(list = list(selected_reduced_dataset = FALSE,pca = FALSE,tsne = FALSE,cor_clust_plot = FALSE,filtered_datasets = FALSE,affectation = FALSE,diff_my_res = FALSE)) #list of all required items to unlock a tab
   for(tab in tab_vector){
-    js$disableTab(tab); #Disabling all tabs but the first one
+    print(tab)
+    js$disableTab(tab) #Disabling all tabs but the first one
+    
   }
   
   #Global reactives values
@@ -65,6 +67,7 @@ shinyAppServer <- function(input, output, session) {
       }}
   }
   
+  js$disableTab("pca_plots")
   
   ###############################################################
   # 1. Select or upload dataset
@@ -1297,4 +1300,4 @@ output$anno_cc_box <- renderUI({
     stopApp()
   })
   
-}
+})

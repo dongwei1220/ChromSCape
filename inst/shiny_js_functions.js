@@ -10,13 +10,15 @@ shinyjs.init_directory = function() {
                                           if(my_cookie){
                                              Shiny.onInputChange("path_cookie", my_cookie);/*Update value shiny variable path_cookie*/
                                           }
+                                          console.log("shinyjs.init_directory");
                                         };
 
 shinyjs.save_cookie = function(params){
                                             Cookies.set('path', params, { expires: 7 }); /*The cookie named 'path' will last 7 days*/
                                             var my_cookie = Cookies.get('path'); 
                                             Shiny.onInputChange("path_cookie", my_cookie);/*Update value shiny variable path_cookie*/
-};
+                                            console.log("shinyjs.save_cookie");
+};  
 
 shinyjs.disableTab = function(name) {
    /* var tab = $('.nav li a[data-value=' + name + ']');
@@ -38,6 +40,7 @@ shinyjs.disableTab = function(name) {
             $(aNodeList[i]).addClass('disabled');
           }
         }
+        console.log("shinyjs.disableTab");
 };
 
 shinyjs.enableTab = function(name) {
@@ -50,4 +53,5 @@ shinyjs.enableTab = function(name) {
             $(aNodeList[i]).removeClass('disabled');
           }
         }
+        console.log("shinyjs.enableTab");
 };

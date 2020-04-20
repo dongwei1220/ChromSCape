@@ -1,11 +1,15 @@
-#global option for ShinyJS
+library(shiny)
+library(shinyjs)
+library(shinydashboard)
+library(shinyDirectoryInput)
+library(plotly)
 
-shinyAppUI <- dashboardPage(skin='green',
+shinyUI(dashboardPage(skin='green',
                             dashboardHeader(title = "ChromSCape"),
                             dashboardSidebar(
                               sidebarUserPanel("Institut Curie - Vallot Lab",
                                                subtitle = a(href = "#", icon("circle", class = "text-success"), "Online"),
-                                               image = "www/curie.jpg"
+                                               image = "curie.jpg"
                               ),
                               sidebarMenu(id="tabs", style = "position: fixed; overflow: visible;",
                                           menuItem("Select or upload dataset", tabName = "upload_dataset", icon=icon("upload")),
@@ -19,9 +23,8 @@ shinyAppUI <- dashboardPage(skin='green',
                               )
                             ),
                             dashboardBody(
-                              useShinyjs(),
-                              
-                              tags$head(includeCSS('inst/www/style.css')),
+                              shinyjs::useShinyjs(),
+                              tags$head(includeCSS('www/style.css')),
                               tags$style(type="text/css",
                                          ".shiny-output-error { visibility: hidden; }",
                                          ".shiny-output-error:before { visibility: hidden; }"
@@ -259,7 +262,7 @@ shinyAppUI <- dashboardPage(skin='green',
                         
                         tabItem(tabName="close_and_save",
                                 fluidPage(useShinyjs(),
-                                          extendShinyjs(text = jscode, functions = c("closeWindow")),
+                                          # extendShinyjs(text = jscode, functions = c("closeWindow")),
                                           column(width=6,
                                                  box(title='Close App & Save Analysis', solidHeader=T, status='danger', width=NULL,
                                                      column(12, actionButton("close_and_save", "Close App & Save Analysis")))
@@ -268,3 +271,4 @@ shinyAppUI <- dashboardPage(skin='green',
                         )
                         
                       )))
+)

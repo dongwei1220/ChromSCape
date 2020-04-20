@@ -53,7 +53,7 @@
 #' @importFrom GenomicRanges GRanges start end union pintersect distanceToNearest
 #' @importFrom SummarizedExperiment rowRanges
 #' @importFrom IRanges findOverlapPairs
-subset_bam_call_peaks <- function(scExp, odir, inputBam, p.value = " -p 0.05 ",
+subset_bam_call_peaks <- function(scExp, odir, inputBam, p.value = 0.05,
                                   ref = "hg38", peak_distance_to_merge = 10000, geneTSS_annotation = NULL){
   stopifnot(is(scExp,"SingleCellExperiment"), dir.exists(odir), is.numeric(p.value), is.character(ref),
             is.numeric(peak_distance_to_merge))
