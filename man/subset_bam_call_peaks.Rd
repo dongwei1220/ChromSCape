@@ -8,7 +8,7 @@ subset_bam_call_peaks(
   scExp,
   odir,
   inputBam,
-  p.value = " -p 0.05 ",
+  p.value = 0.05,
   ref = "hg38",
   peak_distance_to_merge = 10000,
   geneTSS_annotation = NULL

@@ -12,12 +12,21 @@ shinyServer(function(input, output, session) {
   print(js$init_directory)
 
   # addResourcePath("www", system.file("www", package="ChromSCape"))
-  tab_vector = c("pca_plots","cor_clustering","cons_clustering","peak_calling","diff_analysis","enrich_analysis") #list of all lockable tabs
-  unlocked = reactiveValues(list = list(selected_reduced_dataset = FALSE,pca = FALSE,tsne = FALSE,cor_clust_plot = FALSE,filtered_datasets = FALSE,affectation = FALSE,diff_my_res = FALSE)) #list of all required items to unlock a tab
+  tab_vector = c("pca_plots",
+                 "cor_clustering",
+                 "cons_clustering",
+                 "peak_calling",
+                 "diff_analysis",
+                 "enrich_analysis") #list of all lockable tabs
+  unlocked = reactiveValues(list = list(selected_reduced_dataset = FALSE,
+                                        pca = FALSE,
+                                        tsne = FALSE,
+                                        cor_clust_plot = FALSE,
+                                        filtered_datasets = FALSE,
+                                        affectation = FALSE,
+                                        diff_my_res = FALSE)) #list of all required items to unlock a tab
   for(tab in tab_vector){
-    print(tab)
     js$disableTab(tab) #Disabling all tabs but the first one
-    
   }
   
   #Global reactives values
@@ -67,8 +76,6 @@ shinyServer(function(input, output, session) {
       }}
   }
   
-  js$disableTab("pca_plots")
-  
   ###############################################################
   # 1. Select or upload dataset
   ###############################################################
@@ -95,7 +102,7 @@ shinyServer(function(input, output, session) {
     handlerExpr = {
        if ( (input$path_cookie != "[null]") && !is.null(input$path_cookie) && !is.na(input$path_cookie)) {
           #Uploading the name displayed in Data Folder
-          updateDirectoryInput(session, 'data_folder', value =  input$path_cookie)
+          shinyDirectoryInput::updateDirectoryInput(session, 'data_folder', value =  input$path_cookie)
           init$data_folder <- gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie))
           
           init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
@@ -107,7 +114,7 @@ shinyServer(function(input, output, session) {
         }
       })
   
-  #Selecting a working directory using readDirectoryInput(input$data_folder) and saving cookie
+  #Selecting a working directory using shinyDirectoryInput::readDirectoryInput(input$data_folder) and saving cookie
   observeEvent(
     ignoreNULL = TRUE,
     eventExpr = {
@@ -116,13 +123,13 @@ shinyServer(function(input, output, session) {
     handlerExpr = {
       if (input$data_folder > 0) {
         # launch the directory selection dialog with initial path read from the widget
-        folder = choose.dir() #default = readDirectoryInput(session, 'data_folder')
+        folder = shinyDirectoryInput::choose.dir() #default = shinyDirectoryInput::readDirectoryInput(session, 'data_folder')
         js$save_cookie(folder)
         if (!is.na(folder)){
           init$data_folder <- folder
           init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
           init$available_reduced_datasets <- get.available.reduced.datasets()
-          updateDirectoryInput(session, 'data_folder', value = folder)
+          shinyDirectoryInput::updateDirectoryInput(session, 'data_folder', value = folder)
           js$save_cookie(folder)
         }
       }
@@ -170,11 +177,9 @@ shinyServer(function(input, output, session) {
         
         datamatrix_single <- datamatrix_single[!duplicated(rownames(datamatrix_single)),] #put IN for new format
         
-        
         rownames(datamatrix_single) <- gsub(":", "_", rownames(datamatrix_single))
         rownames(datamatrix_single) <- gsub("-", "_", rownames(datamatrix_single))
         
-
         total_cell <- length(datamatrix_single[1,])
         sample_name <- gsub('.{4}$', '', input$datafile_matrix$name[i])
         annot_single <- data.frame(barcode = colnames(datamatrix_single), cell_id = paste0(sample_name, "_c", 1:total_cell), sample_id = rep(sample_name, total_cell), batch_id = i)
@@ -289,7 +294,7 @@ shinyServer(function(input, output, session) {
             panel.background=element_blank(), axis.line=element_line(colour="black"),
             panel.border=element_rect(colour="black", fill=NA))})
   
-  output$cell_coverage <- renderPlotly( ggplotly(cell_cov_plot(), tooltip="Sample", dynamicTicks=T) )
+  output$cell_coverage <- plotly::renderPlotly( plotly::ggplotly(cell_cov_plot(), tooltip="Sample", dynamicTicks=T) )
   
   observeEvent(input$delete_dataset, {  # delete selected dataset
     withProgress(message='Deleting data set', value = 0, {
@@ -312,7 +317,6 @@ shinyServer(function(input, output, session) {
   output$table_QC_filt_box <- renderUI({
     if(!is.null(reduced_dataset())){
           column(12, align="left", tableOutput("num_cell_after_QC_filt"))
-      
     }
   })
   
@@ -341,7 +345,7 @@ shinyServer(function(input, output, session) {
     unlocked$list$pca=T
     p
   })
-  output$pca_plot <- renderPlotly( ggplotly(pca_plot(), tooltip="Sample", dynamicTicks=T) )
+  output$pca_plot <- plotly::renderPlotly( plotly::ggplotly(pca_plot(), tooltip="Sample", dynamicTicks=T) )
   
   tsne_plot <- reactive({
     req(scExp(), input$pca_anno_2D, input$color_by)
@@ -353,12 +357,12 @@ shinyServer(function(input, output, session) {
     unlocked$list$tsne = T
     p
   })
-  output$tsne_plot <- renderPlotly( ggplotly(tsne_plot(), tooltip="Sample", dynamicTicks=T) )
+  output$tsne_plot <- plotly::renderPlotly( plotly::ggplotly(tsne_plot(), tooltip="Sample", dynamicTicks=T) )
   
   output$color_box <- renderUI({
     req(input$color_by)
     if(input$color_by != 'total_counts'){
-      box(title="Color settings", width = NULL, status = "success", solidHeader = T,
+      shinydashboard::box(title="Color settings", width = NULL, status = "success", solidHeader = T,
           column(6, htmlOutput("color_picker")),
           column(6 , br(), actionButton("col_reset", "Default colours", icon = icon("undo")),
                  br(), br(), actionButton("save_color", "Save colors & apply to all", icon = icon("save"))))
@@ -374,7 +378,7 @@ shinyServer(function(input, output, session) {
   
   output$color_picker <- renderUI({
     #Color picker
-    colsModif <- colData(scExp())[,c(input$color_by,paste0(input$color_by,"_color"))] %>% unique()
+    colsModif <- SummarizedExperiment::colData(scExp())[,c(input$color_by,paste0(input$color_by,"_color"))] %>% unique()
     lapply(seq_along(levels_selected()), function(i) {
       colourpicker::colourInput(inputId=paste0("color_", levels_selected()[i]),
                                 label=paste0("Choose colour for ", levels_selected()[i]),
@@ -392,7 +396,7 @@ shinyServer(function(input, output, session) {
   
   levels_selected <- reactive({
     req(scExp(),input$color_by)
-    levels_selected = colData(scExp())[,input$color_by] %>% unique() %>% as.vector()
+    levels_selected = SummarizedExperiment::colData(scExp())[,input$color_by] %>% unique() %>% as.vector()
   })
 
   observeEvent(unlocked$list,able_disable_tab(c("selected_reduced_dataset","pca","tsne"),"cor_clustering")) # if conditions are met, unlock tab Correlation Clustering
@@ -402,7 +406,7 @@ shinyServer(function(input, output, session) {
   # 3. Correlation clustering                                  ##
   ###############################################################
   
-  corColors <- colorRampPalette(c("royalblue","white","indianred1"))(256)
+  corColors <- grDevices::colorRampPalette(c("royalblue","white","indianred1"))(256)
 
   hc_pca_plot <- reactive({
     req(scExp())
@@ -415,15 +419,15 @@ shinyServer(function(input, output, session) {
   output$download_cor_clust_plot <- downloadHandler(
     filename=function(){ paste0("correlation_clustering_", input$selected_reduced_dataset, ".png")},
     content=function(file){
-      png(file, width=1200, height=1400, res=300,pointsize = 8)
+      grDevices::png(file, width=1200, height=1400, res=300,pointsize = 8)
       plot_heatmap_scExp(scExp())
-      dev.off()
+      grDevices::dev.off()
 
   })
   
   correlation_values <- reactiveValues(limitC=vector(length=500))
-  corChIP <- reactive({ reducedDim(scExp(),"Cor") })
-  z <- reactive({ matrix(sample(t(reducedDim(scExp(),"PCA"))), nrow=ncol(reducedDim(scExp(),"PCA"))) })
+  corChIP <- reactive({ SingleCellExperiment::reducedDim(scExp(),"Cor") })
+  z <- reactive({ matrix(sample(t(SingleCellExperiment::reducedDim(scExp(),"PCA"))), nrow=ncol(SingleCellExperiment::reducedDim(scExp(),"PCA"))) })
   thresh2 <- reactive({quantile(cor(z()), probs=seq(0,1,0.01))})
   limitC <- reactive({thresh2()[input$corr_threshold+1]})
   
@@ -443,16 +447,14 @@ shinyServer(function(input, output, session) {
   output$download_cor_clust_hist_plot <- downloadHandler(
     filename=function(){ paste0("correlation_distribution_", input$selected_reduced_dataset, ".png")},
     content=function(file){
-      png(file, width=2000, height=1400, res=300)
+      grDevices::png(file, width=2000, height=1400, res=300)
       hist(corChIP(), prob=TRUE, col=alpha("steelblue", 0.8), breaks=50, ylim=c(0,4),cex=0.4, main="Distribution of cell to cell correlation scores", xlab="Pearson Corr Scores")
       lines(density(corChIP()), col="blue", lwd=2)
       lines(density(cor(z())), col="black", lwd=2)
       abline(v=limitC(), lwd=2, col="red", lty=2)
       legend("topleft", legend=c("dataset", "randomized data", "correlation threshold"), col=c("blue", "black", "red"), lty=c(1, 1, 2), cex=0.8)
-      dev.off()
+      grDevices::dev.off()
   })
-  
-  cf <- reactiveValues(sel2=NULL, mati2=NULL, mat.so.cor2=NULL, hc_cor2=NULL, anocol_sel=NULL)
   
   observeEvent(input$filter_corr_cells, {  # retreiveing cells with low correlation score
     withProgress(message='Filtering correlated cells...', value = 0, {
@@ -486,9 +488,9 @@ shinyServer(function(input, output, session) {
   output$download_cor_clust_filtered_plot <- downloadHandler(
     filename=function(){ paste0("correlation_clustering_filtered_", input$selected_reduced_dataset, ".png")},
     content=function(file){
-      png(file,  width=1200, height=1400, res=300,pointsize = 8)
+      grDevices::png(file,  width=1200, height=1400, res=300,pointsize = 8)
       plot_heatmap_scExp(scExp_cf())
-      dev.off()
+      grDevices::dev.off()
   })
   
   output$corr_filtered_hist <- renderUI({
@@ -558,8 +560,7 @@ shinyServer(function(input, output, session) {
     file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots", input$selected_filtered_dataset)
   })
   
-  clust <- reactiveValues(cc.col=NULL, consclust.mat=NULL, hc = NULL, tsne_corr=NULL, annot_sel2=NULL,
-                          clust_pdf=NULL, cluster_consensus_png = NULL, chi=NULL)
+  clust <- reactiveValues(clust_pdf=NULL, cluster_consensus_png = NULL)
   
   observeEvent(input$selected_filtered_dataset, priority = 10, {
   
@@ -584,9 +585,9 @@ shinyServer(function(input, output, session) {
       myData = new.env()
       load(filename, envir = myData)
       scExp_cf(myData$data$scExp_cf)
-      if("chromatin_group" %in% colnames(colData(scExp_cf()))){
+      if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
         updateSelectInput(session, inputId = "nclust", label = "Select number of clusters:", choices=c(2:10),
-                            selected = n_distinct(colData(scExp_cf())$chromatin_group))
+                            selected = n_distinct(SummarizedExperiment::colData(scExp_cf())$chromatin_group))
       }
     } else {
       NULL
@@ -653,11 +654,11 @@ shinyServer(function(input, output, session) {
   
 output$cons_clust_anno_plot <- renderPlot({
   if(! is.null(scExp_cf())){
-    if("chromatin_group" %in% colnames(colData(scExp_cf()))){
-      colors <- colData(scExp_cf())[scExp_cf()@metadata$hc_consensus_association$order,"chromatin_group_color"]
-      heatmap(reducedDim(scExp_cf(),"ConsensusAssociation")[scExp_cf()@metadata$hc_consensus_association$order,],
+    if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
+      colors <- SummarizedExperiment::colData(scExp_cf())[scExp_cf()@metadata$hc_consensus_association$order,"chromatin_group_color"]
+      heatmap(SingleCellExperiment::reducedDim(scExp_cf(),"ConsensusAssociation")[scExp_cf()@metadata$hc_consensus_association$order,],
               Colv = as.dendrogram(scExp_cf()@metadata$hc_consensus_association),
-              Rowv = NA, symm = FALSE, scale="none", col = colorRampPalette(c("white", "blue"))(100),
+              Rowv = NA, symm = FALSE, scale="none", col = grDevices::colorRampPalette(c("white", "blue"))(100),
               na.rm = TRUE, labRow = F, labCol = F, mar = c(5, 5), main = paste("consensus matrix k=", input$nclust, sep=""),
               ColSideCol = colors)
     }
@@ -666,8 +667,8 @@ output$cons_clust_anno_plot <- renderPlot({
   
 output$anno_cc_box <- renderUI({
   if(! is.null(scExp_cf())){
-    if("chromatin_group" %in% colnames(colData(scExp_cf()))){
-      box(title="Annotated consensus clustering", width = NULL, status="success", solidHeader = T,
+    if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
+      shinydashboard::box(title="Annotated consensus clustering", width = NULL, status="success", solidHeader = T,
           column(12, align="left", plotOutput("cons_clust_anno_plot", height = 500, width = 500),
                  downloadButton("download_anno_cc_plot", "Download image")))
     }
@@ -677,22 +678,22 @@ output$anno_cc_box <- renderUI({
   output$download_anno_cc_plot <- downloadHandler(
     filename = function(){ paste0("consensus_clustering_k", input$nclust, "_", input$selected_filtered_dataset, ".png")},
     content = function(file){
-      png(file, width = 1200, height = 800, res = 300)
-      colors <- colData(scExp_cf())[scExp_cf()@metadata$hc_consensus_association$order,"chromatin_group_color"]
-      heatmap(reducedDim(scExp_cf(),"ConsensusAssociation")[scExp_cf()@metadata$hc_consensus_association$order,],
+      grDevices::png(file, width = 1200, height = 800, res = 300)
+      colors <- SummarizedExperiment::colData(scExp_cf())[scExp_cf()@metadata$hc_consensus_association$order,"chromatin_group_color"]
+      heatmap(SingleCellExperiment::reducedDim(scExp_cf(),"ConsensusAssociation")[scExp_cf()@metadata$hc_consensus_association$order,],
               Colv = as.dendrogram(scExp_cf()@metadata$hc_consensus_association),
               Rowv = NA, symm = FALSE, scale="none", col = colorRampPalette(c("white", "blue"))(100),
               na.rm = TRUE, labRow = F, labCol = F, mar = c(5, 5), main = paste("consensus matrix k=", input$nclust, sep=""),
               ColSideCol = colors)
-      dev.off()
+      grDevices::dev.off()
   })
   
   output$cor_clust_anno_plot <- renderPlot(plot_heatmap_scExp(scExp_cf(),name_hc = "hc_cor"))
   
   output$anno_corc_box <- renderUI({
     if(! is.null(scExp_cf())){
-      if("chromatin_group" %in% colnames(colData(scExp_cf()))){
-        box(title="Annotated correlation clustering", width = NULL, status="success", solidHeader = T,
+      if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
+        shinydashboard::box(title="Annotated correlation clustering", width = NULL, status="success", solidHeader = T,
             column(12, align="left", plotOutput("cor_clust_anno_plot", height = 500, width = 500)),
             column(12, align="left", tableOutput("hcor_kable")),
             column(5,offset = 2, align="left", br(), htmlOutput("chi_info"),br()),
@@ -704,16 +705,16 @@ output$anno_cc_box <- renderUI({
   output$download_anno_hc_plot <- downloadHandler(
     filename = function(){ paste0("hierarchical_clustering_k", input$nclust, "_", input$selected_filtered_dataset, ".png")},
     content = function(file){
-      png(file,  width = 1200, height = 1400, res = 300,pointsize = 8)
+      grDevices::png(file,  width = 1200, height = 1400, res = 300,pointsize = 8)
       plot_heatmap_scExp(scExp_cf(),name_hc = "hc_cor")
-      dev.off()
+      grDevices::dev.off()
   })
 
     
   output$hcor_kable <- function(){
     req(scExp_cf())
     if(! is.null(scExp_cf())){
-      if("chromatin_group" %in% colnames(colData(scExp_cf()))){
+      if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
         num_cell_in_cluster_scExp(scExp_cf())
       } else{
         NULL
@@ -729,20 +730,20 @@ output$anno_cc_box <- renderUI({
                                annot_label ="none")
     p
   })
-  output$tsne_plot_cf <- renderPlotly( ggplotly(tsne_p_cf(), tooltip="Sample", dynamicTicks = T) )
+  output$tsne_plot_cf <- plotly::renderPlotly( plotly::ggplotly(tsne_p_cf(), tooltip="Sample", dynamicTicks = T) )
   
   levels_selected_cf <- reactive({
     req(scExp_cf(),input$color_by_cf)
-    levels_selected_cf = colData(scExp_cf())[,input$color_by_cf] %>% unique() %>% as.vector()
+    levels_selected_cf = SummarizedExperiment::colData(scExp_cf())[,input$color_by_cf] %>% unique() %>% as.vector()
   })
   
   output$tsne_box_cf <- renderUI({
     if(! is.null(scExp_cf())){
-      if("chromatin_group" %in% colnames(colData(scExp_cf())) ){
-        box(title="Annotated tSNE", width = NULL, status="success", solidHeader = T,
+      if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf())) ){
+        shinydashboard::box(title="Annotated tSNE", width = NULL, status="success", solidHeader = T,
             column(6, align="left", selectInput("color_by_cf", "Color by", choices = c('sample_id', 'total_counts', 'chromatin_group'))),
             column(6, align="left", selectInput("anno_tsne_anno", "Labels", choices = c('none', 'cell_id', 'sample_id', 'total_counts'))),
-            column(12, align="left", plotlyOutput("tsne_plot_cf")))
+            column(12, align="left", plotly::plotlyOutput("tsne_plot_cf")))
         
       }
     }
@@ -751,9 +752,9 @@ output$anno_cc_box <- renderUI({
   output$color_box_cf <- renderUI({
     req(input$color_by_cf)
     if(! is.null(scExp_cf())){
-      if("chromatin_group" %in% colnames(colData(scExp_cf()))){
+      if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
         if(input$color_by_cf != 'total_counts'){
-          box(title="Color settings", width = NULL, status = "success", solidHeader = T,
+          shinydashboard::box(title="Color settings", width = NULL, status = "success", solidHeader = T,
               column(6, htmlOutput("color_picker_cf")),
               column(4 , br(), actionButton("col_reset_cf", "Default colours", icon = icon("undo")),
                      br(), br(), actionButton("save_color_cf", "Save colors & apply to all", icon = icon("save"))))
@@ -781,7 +782,7 @@ output$anno_cc_box <- renderUI({
 
   output$color_picker_cf <- renderUI({
     #Color picker
-    colsModif <- as.data.frame(colData(scExp_cf()))[,c(input$color_by_cf,paste0(input$color_by_cf,"_color"))] %>% unique()
+    colsModif <- as.data.frame(SummarizedExperiment::colData(scExp_cf()))[,c(input$color_by_cf,paste0(input$color_by_cf,"_color"))] %>% unique()
     lapply(seq_along(levels_selected_cf()), function(i) {
       colourpicker::colourInput(inputId=paste0("color_cf_", levels_selected_cf()[i]),
                                 label=paste0("Choose colour for ", levels_selected_cf()[i]),
@@ -795,7 +796,7 @@ output$anno_cc_box <- renderUI({
     },
     {
       if(length(input$selected_filtered_dataset)>0 & !is.null(scExp_cf())){
-        if("chromatin_group" %in% colnames(colData(scExp_cf()))){
+        if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf()))){
           unlocked$list$affectation = T
         } else {
           unlocked$list$affectation = F
@@ -815,7 +816,7 @@ output$anno_cc_box <- renderUI({
     "})
   output$peak_calling_system <- renderText({
     platform = as.character(.Platform[1])
-    if(platform == "unix"){
+    if(length(grep("nix",platform,ignore.case = T)) ){
       macs2=""
       samtools=""
       try({
@@ -843,7 +844,7 @@ output$anno_cc_box <- renderUI({
   
   output$bam_upload <- renderUI({
     req(scExp_cf())
-    sample_ids <- unique(colData(scExp_cf())$sample_id)
+    sample_ids <- unique(SummarizedExperiment::colData(scExp_cf())$sample_id)
     lapply(sample_ids, function(x){
       textInput(paste0('bam_', x), paste0('Full path to .bam file for sample ', x, ':'), value="/home/example/sample.bam")
     })
@@ -859,7 +860,7 @@ output$anno_cc_box <- renderUI({
         dir.create(file.path(init$data_folder, "datasets", dataset_name(), "peaks"), showWarnings = FALSE)
         dir.create(file.path(init$data_folder, "datasets", dataset_name(), "peaks", paste0(input$selected_filtered_dataset, "_k", input$pc_k_selection)), showWarnings = FALSE)
         odir <- file.path(init$data_folder, "datasets", dataset_name(), "peaks", paste0(input$selected_filtered_dataset, "_k", input$pc_k_selection))
-        sample_ids <- unique(colData(scExp_cf())$sample_id)
+        sample_ids <- unique(SummarizedExperiment::colData(scExp_cf())$sample_id)
         inputBams <- as.character(unlist(sapply(sample_ids, function(x){ input[[paste0('bam_', x)]] })))
 
         checkBams <- sapply(inputBams, function(x){ if(file.exists(x)){ 0 } else { 
@@ -908,7 +909,7 @@ output$anno_cc_box <- renderUI({
 
   # output$pc_plot_box <- renderUI({
   #   if(has_available_pc()){
-  #     box(title="Peak calling visualization", width = NULL, status="success", solidHeader = T,
+  #     shinydashboard::box(title="Peak calling visualization", width = NULL, status="success", solidHeader = T,
   #         column(8, align="left", selectInput("pc_cluster","Select cluster (only those shown for which plots are available):", choices = paste0("C", available_pc_plots()))),
   #         column(12, align="left",
   #                plotOutput("peak_model_plot", height = 500, width = 500),
@@ -1000,7 +1001,7 @@ output$anno_cc_box <- renderUI({
   output$da_summary_box <- renderUI({
     if(!is.null(scExp_cf())){
       if(!is.null(scExp_cf()@metadata$diff)){
-        box(title="Number of differentially bound regions", width = NULL, status="success", solidHeader = T,
+        shinydashboard::box(title="Number of differentially bound regions", width = NULL, status="success", solidHeader = T,
             column(5, align="left", br(), tableOutput("da_summary_kable")),
             column(7, align="left", plotOutput("da_barplot", height = 270, width = 250)),
             column(12, align="left", div(style = 'overflow-x: scroll', DT::dataTableOutput('da_table')), br()),
@@ -1014,8 +1015,8 @@ output$anno_cc_box <- renderUI({
     if(!is.null(scExp_cf())){
       if(!is.null(scExp_cf()@metadata$diff)){
         scExp_cf()@metadata$diff$summary %>%
-          kable(escape = F, align="c") %>%
-          kable_styling(c("striped", "condensed"), full_width = F)
+          kableExtra::kable(escape = F, align="c") %>%
+          kableExtra::kable_styling(c("striped", "condensed"), full_width = F)
       }
     }
   }
@@ -1030,9 +1031,9 @@ output$anno_cc_box <- renderUI({
   output$download_da_barplot <- downloadHandler(
     filename = function(){ paste0("diffAnalysis_numRegions_barplot_", input$selected_filtered_dataset, "_", input$selected_k, "_", input$qval.th, "_", input$cdiff.th, "_", input$de_type, ".png")},
     content = function(file){
-      png(file, width = 800, height = 600, res = 150)
+      grDevices::png(file, width = 800, height = 600, res = 150)
       plot_differential_summary_scExp(scExp_cf())
-      dev.off()
+      grDevices::dev.off()
     })
   
   output$da_table <- DT::renderDataTable({
@@ -1059,7 +1060,7 @@ output$anno_cc_box <- renderUI({
   output$da_visu_box <- renderUI({
     if(!is.null(scExp_cf())){
       if(!is.null(scExp_cf()@metadata$diff)){
-        box(title="Visualization", width = NULL, status="success", solidHeader = T,
+        shinydashboard::box(title="Visualization", width = NULL, status="success", solidHeader = T,
             column(4, align="left", selectInput("gpsamp", "Select cluster:", choices = scExp_cf()@metadata$diff$groups)),
             column(12, align="left", plotOutput("h1_prop", height = 300, width = 500),
                    plotOutput("da_volcano", height = 500, width = 500)),
@@ -1080,9 +1081,9 @@ output$anno_cc_box <- renderUI({
   output$download_h1_plot <- downloadHandler(
     filename = function(){ paste0("diffAnalysis_numRegions_barplot_", input$selected_filtered_dataset, "_", input$selected_k, "_", input$qval.th, "_", input$cdiff.th, "_", input$de_type, "_", input$gpsamp, ".png")},
     content = function(file){
-      png(file, width = 1000, height = 600, res = 300)
+      grDevices::png(file, width = 1000, height = 600, res = 300)
       plot_differential_H1_scExp(scExp_cf(), input$gpsamp)
-      dev.off()
+      grDevices::dev.off()
   })
   
   output$da_volcano <- renderPlot({
@@ -1097,10 +1098,10 @@ output$anno_cc_box <- renderUI({
   output$download_da_volcano <- downloadHandler(
     filename = function(){ paste0("diffAnalysis_numRegions_barplot_", input$selected_filtered_dataset, "_", input$selected_k, "_", input$qval.th, "_", input$cdiff.th, "_", input$de_type, "_", input$gpsamp, ".png")},
         content = function(file){
-        png(file, width = 900, height = 900, res = 300)
+        grDevices::png(file, width = 900, height = 900, res = 300)
           plot_differential_volcano_scExp(scExp_cf(),chromatin_group = input$gpsamp,
                                           cdiff.th = input$cdiff.th, qval.th = input$qval.th)
-        dev.off()
+        grDevices::dev.off()
     })
   
     observeEvent(unlocked$list, {
@@ -1240,11 +1241,11 @@ output$anno_cc_box <- renderUI({
   output$gene_sel <- renderUI({
     if(!is.null(scExp_cf())){
       if(!is.null(scExp_cf()@metadata$enr)){
-        most_diff = scExp_cf()@metadata$diff$res %>% select(ID,starts_with("qval."))
-        most_diff[,"qval"] = rowMeans2(as.matrix(most_diff[,-1]))
-        most_diff = left_join(most_diff[order(most_diff$qval),], annotFeat_long(),by = c("ID"))
-        most_diff = most_diff %>% filter(!is.na(Gene)) 
-        genes = intersect(most_diff$Gene,unique(GencodeGenes()))
+        most_diff = scExp_cf()@metadata$diff$res %>% dplyr::select(ID,starts_with("qval."))
+        most_diff[,"qval"] = Matrix::rowMeans(as.matrix(most_diff[,-1]))
+        most_diff = dplyr::left_join(most_diff[order(most_diff$qval),], annotFeat_long(),by = c("ID"))
+        most_diff = most_diff %>% dplyr::filter(!is.na(Gene)) 
+        genes = base::intersect(most_diff$Gene,unique(GencodeGenes()))
 
         selectizeInput(inputId = "gene_sel", "Select gene:",options= list(maxOptions = 250),genes)
       }
@@ -1266,21 +1267,21 @@ output$anno_cc_box <- renderUI({
     req(input$gene_sel, input$region_sel)
     region <- strsplit(input$region_sel, " ")[[1]][1]
     if(region %in% rownames(scExp_cf())){
-      p <- ggplot(as.data.frame(reducedDim(scExp_cf(), "TSNE")), aes(x = V1, y = V2)) +
-        geom_point(alpha = 0.5, aes(color = normcounts(scExp_cf())[region, ], shape = colData(scExp_cf())$chromatin_group)) +
+      p <- ggplot(as.data.frame(SingleCellExperiment::reducedDim(scExp_cf(), "TSNE")), aes(x = V1, y = V2)) +
+        geom_point(alpha = 0.5, aes(color = normcounts(scExp_cf())[region, ], shape = SummarizedExperiment::colData(scExp_cf())$chromatin_group)) +
         labs(color="norm. count for region", shape="Cluster", x="t-SNE 1", y="t-SNE 2") +
         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
               panel.background = element_blank(), axis.line = element_line(colour="black"),
               panel.border = element_rect(colour="black", fill = NA)) +
-        scale_color_viridis(direction=-1)
+        viridis::scale_color_viridis(direction=-1)
     }
   })
   
-  output$gene_tsne_plot <- renderPlotly({
+  output$gene_tsne_plot <- plotly::renderPlotly({
       req(input$gene_sel, input$region_sel)
       region <- strsplit(input$region_sel, " ")[[1]][1]
       if(region %in% rownames(scExp_cf())){
-        ggplotly(gene_tsne_p(), tooltip="Sample", dynamicTicks = T)
+        plotly::ggplotly(gene_tsne_p(), tooltip="Sample", dynamicTicks = T)
       }
   })
   

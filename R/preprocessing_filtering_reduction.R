@@ -449,6 +449,7 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
 #' @param scExp A SingleCellExperiment object.
 #' @param annot A raw annotation data.frame of cells before filtering.
 #'
+#' @export
 #' @return A formatted kable in HTML. 
 #' @importFrom SingleCellExperiment colData
 #' @importFrom dplyr bind_rows tibble left_join

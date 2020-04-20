@@ -1,28 +1,24 @@
 library(shiny)
-library(shinyjs)
-library(shinydashboard)
-library(shinyDirectoryInput)
-library(plotly)
 
-shinyUI(dashboardPage(skin='green',
-                            dashboardHeader(title = "ChromSCape"),
-                            dashboardSidebar(
-                              sidebarUserPanel("Institut Curie - Vallot Lab",
+shinyUI(shinydashboard::dashboardPage(skin='green',
+                            shinydashboard::dashboardHeader(title = "ChromSCape"),
+                            shinydashboard::dashboardSidebar(
+                              shinydashboard::sidebarUserPanel("Institut Curie - Vallot Lab",
                                                subtitle = a(href = "#", icon("circle", class = "text-success"), "Online"),
                                                image = "curie.jpg"
                               ),
-                              sidebarMenu(id="tabs", style = "position: fixed; overflow: visible;",
-                                          menuItem("Select or upload dataset", tabName = "upload_dataset", icon=icon("upload")),
-                                          menuItem("Dimensionality reduction", tabName = "pca_plots", icon=icon("chevron-circle-down")),
-                                          menuItem("Correlation clustering", tabName = "cor_clustering", icon=icon("sitemap")),
-                                          menuItem("Consensus clustering", tabName = "cons_clustering", icon=icon("th")),
-                                          menuItem("Peak calling", tabName = "peak_calling", icon=icon("chart-area")), #mountain
-                                          menuItem("Differential analysis", tabName = "diff_analysis", icon=icon("chart-bar")),
-                                          menuItem("Enrichment analysis", tabName = "enrich_analysis", icon=icon("code-branch")),
-                                          menuItem("Close App & Save Analysis", tabName = "close_and_save", icon=icon("close"))
+                              shinydashboard::sidebarMenu(id="tabs", style = "position: fixed; overflow: visible;",
+                                          shinydashboard::menuItem("Select or upload dataset", tabName = "upload_dataset", icon=icon("upload")),
+                                          shinydashboard::menuItem("Dimensionality reduction", tabName = "pca_plots", icon=icon("chevron-circle-down")),
+                                          shinydashboard::menuItem("Correlation clustering", tabName = "cor_clustering", icon=icon("sitemap")),
+                                          shinydashboard::menuItem("Consensus clustering", tabName = "cons_clustering", icon=icon("th")),
+                                          shinydashboard::menuItem("Peak calling", tabName = "peak_calling", icon=icon("chart-area")), #mountain
+                                          shinydashboard::menuItem("Differential analysis", tabName = "diff_analysis", icon=icon("chart-bar")),
+                                          shinydashboard::menuItem("Enrichment analysis", tabName = "enrich_analysis", icon=icon("code-branch")),
+                                          shinydashboard::menuItem("Close App & Save Analysis", tabName = "close_and_save", icon=icon("close"))
                               )
                             ),
-                            dashboardBody(
+                            shinydashboard::dashboardBody(
                               shinyjs::useShinyjs(),
                               tags$head(includeCSS('www/style.css')),
                               tags$style(type="text/css",
@@ -45,14 +41,14 @@ shinyUI(dashboardPage(skin='green',
                            $("header").find("nav").append(\'<div id="pageHeader" class="myClass"></div>\');
                            })
                            ')),
-                              tabItems(
+                              shinydashboard::tabItems(
                                 
                                 
                                 ###############################################################
                                 # 1. Select or upload dataset
                                 ###############################################################
                                 
-                                tabItem(tabName = "upload_dataset",
+                                shinydashboard::tabItem(tabName = "upload_dataset",
                                         
                                 fluidPage(
                                   shiny::includeScript(file.path(system.file(package="ChromSCape"),"js.cookie.js")),
@@ -61,29 +57,29 @@ shinyUI(dashboardPage(skin='green',
                                                          functions = c("init_directory","save_cookie","disableTab","enableTab")),
                                   #Left Panel
                                   column(width=6,
-                                         box(title="Select local data directory", width = NULL, status="warning", solidHeader=T,
+                                         shinydashboard::box(title="Select local data directory", width = NULL, status="warning", solidHeader=T,
                                              column(12, align="left", directoryInput('data_folder', label = 'select a directory', value = '~')),
                                              column(12, align="left", textOutput("data_folder_info"))),
-                                         box(title="Select preprocessed data set", width = NULL, status="warning", solidHeader=T,
+                                         shinydashboard::box(title="Select preprocessed data set", width = NULL, status="warning", solidHeader=T,
                                              column(12, align="left",
                                                     htmlOutput("selected_reduced_dataset"),
                                                     textOutput("red_data_selection_info"),
                                                     textOutput("red_data_selection_format"))),
-                                         box(title="Upload new data set", width = NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Upload new data set", width = NULL, status="success", solidHeader=T,
                                              column(12, align="left",
                                                     textInput("new_dataset_name", "Enter a name for the new dataset :", value = "dataset1"),
                                                     selectInput("annotation","Select annotation for dataset :", choices=c("hg38", "mm10")),
                                                     textOutput("data_matrices_info"),
                                                     fileInput("datafile_matrix", "Upload all data matrices (.txt or .tsv) :", multiple=TRUE, accept=c("text", "text/plain", ".txt", ".tsv")),
                                                     actionButton("compile_dataset", "Compile dataset"))),
-                                         box(title="Delete data set", width = NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Delete data set", width = NULL, status="success", solidHeader=T,
                                              column(9, align="left", uiOutput("selected_delete_dataset")),
                                              column(3, align="left", br(), actionButton("delete_dataset", "Delete")),
                                              column(12, align="left", textOutput("data_deletion_info")))),
 
                                   #Right Panel
                                   column(width=6,
-                                         box(title="QC thresholds and normalization", width = NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="QC thresholds and normalization", width = NULL, status="success", solidHeader=T,
                                              column(12, align="left",
                                                     uiOutput("selected_raw_dataset"),
                                                     hr()),
@@ -91,7 +87,7 @@ shinyUI(dashboardPage(skin='green',
                                              column(8, align="left",
                                                     sliderInput("coverage_bins", "modify bin size of histogram :", min=5, max=100, value=50, step=5)),
                                              column(12, align="left",
-                                                    plotlyOutput("cell_coverage", height=250),
+                                                    plotly::plotlyOutput("cell_coverage", height=250),
                                                     br(), hr(),
                                                     uiOutput("table_QC_filt_box"),
                                                     br(), hr(),
@@ -111,21 +107,21 @@ shinyUI(dashboardPage(skin='green',
                         # 2. PCA and tSNE
                         ###############################################################
                         
-                        tabItem(
+                        shinydashboard::tabItem(
                           tabName = "pca_plots",
                                 fluidPage(
                                   column(width=6,
-                                         box(title="PCA visualization", width = NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="PCA visualization", width = NULL, status="success", solidHeader=T,
                                              column(6, align="left", htmlOutput("color_by")),
                                              column(6, align="left", htmlOutput("pca_anno_2D")),
-                                             column(12, align="left", plotlyOutput("pca_plot")),
+                                             column(12, align="left", plotly::plotlyOutput("pca_plot")),
                                              column(3, align="left", htmlOutput("pc_select_x")),
                                              column(3, align="left", htmlOutput("pc_select_y"))),
                                          uiOutput("color_box")),
                                   column(width=6,
-                                         box(title="tSNE visualization", width = NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="tSNE visualization", width = NULL, status="success", solidHeader=T,
                                              column(6, align="left", htmlOutput("tsne_anno")),
-                                             column(12, align="left", plotlyOutput("tsne_plot")))
+                                             column(12, align="left", plotly::plotlyOutput("tsne_plot")))
                                          )
                                 )
                         ),
@@ -134,17 +130,17 @@ shinyUI(dashboardPage(skin='green',
                         # 3. Correlation clustering
                         ###############################################################
                         
-                        tabItem(tabName = "cor_clustering",
+                        shinydashboard::tabItem(tabName = "cor_clustering",
                                 fluidPage(
                                   column(width=6,
-                                         box(title="Correlation clustering on PCA", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Correlation clustering on PCA", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", plotOutput("corr_clust_pca_plot", height=500, width=500),
                                                     downloadButton("download_cor_clust_plot", "Download image"), br(),
                                                     tableOutput('num_cell_before_cor_filt'))
                                              )),
                                 
                                 column(width=6,
-                                         box(title="Data filtering based on inter-cell correlation", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Data filtering based on inter-cell correlation", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", plotOutput("cell_cor_hist_plot", height=300, width=500),
                                                     downloadButton("download_cor_clust_hist_plot", "Download image"),
                                                     hr(),
@@ -159,19 +155,19 @@ shinyUI(dashboardPage(skin='green',
                         # 4. Consensus clustering on correlated cells
                         ###############################################################
                         
-                        tabItem(tabName = "cons_clustering",
+                        shinydashboard::tabItem(tabName = "cons_clustering",
                                 fluidPage(
                                   column(width=6,
-                                         box(title="Consensus clustering on correlated cells", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Consensus clustering on correlated cells", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", htmlOutput("selected_filtered_dataset"),
                                                     textOutput("filtered_data_selection_format"))),
-                                         box(title="Clustering results", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Clustering results", width=NULL, status="success", solidHeader=T,
                                              column(4, align="left", actionButton("do_cons_clust", "Perform clustering"),
                                                     br()),
                                              column(12, align="left", uiOutput("cluster_consensus_png")),
                                              column(12, align="left", uiOutput("cons_clust_pdf")))),
                                   column(width=6,
-                                         box(title="Cluster selection", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Cluster selection", width=NULL, status="success", solidHeader=T,
                                              column(5, align="left", selectInput("nclust", "Select number of clusters:", choices=c(2:10))),
                                              column(3, align="left", br(),
                                                     actionButton("choose_cluster", "Select")),
@@ -186,10 +182,10 @@ shinyUI(dashboardPage(skin='green',
                         # 5. Peak calling [optional]
                         ###############################################################
                         
-                        tabItem(tabName = "peak_calling",
+                        shinydashboard::tabItem(tabName = "peak_calling",
                                 fluidPage(
                                   column(width=6,
-                                         box(title="Peak calling", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Peak calling", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", textOutput("peak_calling_info"), hr(),
                                                     htmlOutput("peak_calling_system"), hr(),
                                                     sliderInput("peak_distance_to_merge", "Select distance of peaks to merge:", min=0, max=50000, value=5000, step=1000),
@@ -207,10 +203,10 @@ shinyUI(dashboardPage(skin='green',
                         # 6. Differential analysis
                         ###############################################################
                         
-                        tabItem(tabName = "diff_analysis",
+                        shinydashboard::tabItem(tabName = "diff_analysis",
                                 fluidPage(
                                   column(width=6,
-                                         box(title="Parameter selection", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Parameter selection", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", textOutput("diff_analysis_info"), br()),
                                              column(5, align="left", htmlOutput("selected_k")),
                                              column(5, align="left", selectInput("de_type", "Select type of cluster comparison:", choices=c("one_vs_rest","pairwise"))),
@@ -232,14 +228,14 @@ shinyUI(dashboardPage(skin='green',
                         # 7. Enrichment analysis
                         ###############################################################
                         
-                        tabItem(tabName = "enrich_analysis",
+                        shinydashboard::tabItem(tabName = "enrich_analysis",
                                 fluidPage(
                                   column(width=6,
-                                         box(title="Enrichment analysis", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Enrichment analysis", width=NULL, status="success", solidHeader=T,
                                              column(12, align="left", textOutput("enr_info"), br(),
                                                     uiOutput("use_peaks"),
                                                     actionButton("do_enrich", "Start enrichment analysis"))),
-                                         box(title="Enriched gene sets in differential regions across clusters", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Enriched gene sets in differential regions across clusters", width=NULL, status="success", solidHeader=T,
                                              column(4, align="left", uiOutput("enr_clust_sel"), br()),
                                              column(8, align="left", uiOutput("enr_class_sel"), br()),
                                              column(12, align="left",
@@ -250,21 +246,21 @@ shinyUI(dashboardPage(skin='green',
                                                     br(), br(), br(), br(), br(),
                                                     downloadButton("download_enr_data", "Download tables")))),
                                   column(width=6,
-                                         box(title="Binding strength near TSS", width=NULL, status="success", solidHeader=T,
+                                         shinydashboard::box(title="Binding strength near TSS", width=NULL, status="success", solidHeader=T,
                                              column(4, align="left", uiOutput("gene_sel")),
                                              column(8, align="left", uiOutput("region_sel")),
-                                             column(12, align="left", plotlyOutput("gene_tsne_plot")))))
+                                             column(12, align="left", plotly::plotlyOutput("gene_tsne_plot")))))
                         ),
                         
                         ###############################################################
                         # 8. Close app
                         ###############################################################
                         
-                        tabItem(tabName="close_and_save",
-                                fluidPage(useShinyjs(),
+                        shinydashboard::tabItem(tabName="close_and_save",
+                                fluidPage(shinyjs::useShinyjs(),
                                           # extendShinyjs(text = jscode, functions = c("closeWindow")),
                                           column(width=6,
-                                                 box(title='Close App & Save Analysis', solidHeader=T, status='danger', width=NULL,
+                                                 shinydashboard::box(title='Close App & Save Analysis', solidHeader=T, status='danger', width=NULL,
                                                      column(12, actionButton("close_and_save", "Close App & Save Analysis")))
                                           )
                                 )

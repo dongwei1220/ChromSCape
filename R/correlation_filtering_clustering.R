@@ -130,6 +130,7 @@ filter_correlated_cell_scExp <- function(scExp, random_iter = 50, corr_threshold
 #'
 #' @return
 #'
+#' @export
 #' @examples
 #' @importFrom SingleCellExperiment colData
 #' @importFrom dplyr bind_rows tibble left_join mutate
