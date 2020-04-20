@@ -14,3 +14,28 @@ LazyData: true
 Suggests: 
     testthat
 RoxygenNote: 7.1.0.9000
+Imports: 
+    shiny,
+    shinyjs,
+    plotly,
+    shinydashboard,
+    colourpicker,
+    RColorBrewer,
+    colorRamps,
+    kableExtra,
+    knitr,
+    viridis,
+    ggplot2,
+    gplots,
+    png,
+    gridExtra,
+    DT,
+    scater,
+    ConsensusClusterPlus,
+    Rtsne,
+    dplyr,
+    tidyr,
+    GenomicRanges,
+    IRanges
+Depends: 
+    SingleCellExperiment
