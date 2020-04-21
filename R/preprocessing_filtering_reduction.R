@@ -417,7 +417,7 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
                               batch_list = NULL, verbose = T) {
   stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(n), dimension_reductions[1] %in% c("PCA", "TSNE"))
   
-  if (!"normcounts" %in% names(assays(scExp))) {
+  if (!"normcounts" %in% names(SummarizedExperiment::assays(scExp))) {
     warning("ChromSCape::reduce_dims_scExp - The raw counts are not normalized,
             running dimensionality reduction on raw counts.")
     mat = SingleCellExperiment::counts(scExp)
@@ -436,7 +436,7 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
     num_batches = length(batch_list)
     batch_names = names(batch_list)
     
-    SummarizedExperiment::colData(scExp)$batch_name <- "unspecified"
+    scExp$batch_name <- "unspecified"
     
     for(i in 1:num_batches){
       for(s_id in batch_list[[i]]){
@@ -447,26 +447,37 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
     adj_annot <- data.frame()  
     b_names <- unique(scExp$batch_name)
     
-    pca <- sparse_prcomp_irlba(Matrix::t(mat),n=50,retx=T,center=T, scale. = F)
-    rownames(pca$rotation) = rownames(norm_mat)
-    
+    if(class(mat) %in% c("dgCMatrix", "dgTMatrix")) {
+      pca =  pca_irlba_for_sparseMatrix(Matrix::t(mat), n)
+    } else {
+      pca = stats::prcomp(Matrix::t(mat), center = T, scale. = F)
+      pca = pca$x[, 1:n]
+    }
     for(i in 1:length(b_names)){
       b_name <- b_names[i]
-      batches[[i]] <- pca$x[scExp$batch_name==b_name,]
+      batches[[i]] <- pca[scExp$batch_name==b_name,]
       adj_annot <- rbind(adj_annot, SummarizedExperiment::colData(scExp)[scExp$batch_name==b_name, ])
     }
 
-    mnn.out <- do.call(fastMNN, c(batches, list(k=25, d=50, ndist=3, pc.input=T, auto.order=T, cos.norm=F,compute.variances = T)))
-    pca$x <- mnn.out$corrected
-    colnames(pca$x) <- paste0("PC", 1:dim(pca$x)[2])
+    mnn.out <- do.call(scran::fastMNN, c(batches, list(k=25, d=50, ndist=3, pc.input=T,
+                                                auto.order=T, cos.norm=F,
+                                                compute.variances = T)))
+    pca <- mnn.out$corrected
     SummarizedExperiment::colData(scExp) <- adj_annot
-    rownames(pca$x) = scExp$cell_id
   
   } else {
     scExp$batch_name = "batch_1"
-    pca = stats::prcomp(Matrix::t(mat), center = T, scale. = F)
-    pca = pca$x[, 1:n]
+    if(class(mat) %in% c("dgCMatrix", "dgTMatrix")) {
+      pca =  pca_irlba_for_sparseMatrix(Matrix::t(mat), n)
+    } else {
+      pca = stats::prcomp(Matrix::t(mat), center = T, scale. = F)
+      pca = pca$x[, 1:n]
+    }
   }
+  pca = as.data.frame(as.matrix(pca))
+  colnames(pca) <- paste0("PC", 1:n)
+  rownames(pca) <- colnames(scExp)
+  
   set.seed(47)
   # Reduce the perplexity if the number of samples is too low to avoid perplexity error
   if ("TSNE" %in% dimension_reductions) {
@@ -478,10 +489,28 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
   
   # save PCA & T-SNE in scExp object
   if ("TSNE" %in% dimension_reductions) 
-    SingleCellExperiment::reducedDims(scExp) = list(PCA = as.data.frame(pca), TSNE = tsne) else
-      reducedDims(scExp) = list(PCA = pca)
+    SingleCellExperiment::reducedDims(scExp) = list(PCA = pca, TSNE = tsne) else
+      SingleCellExperiment::reducedDims(scExp) = list(PCA = pca)
   
   return(scExp)
+}
+
+#' Run sparse PCA using irlba SVD
+#'
+#' @param x 
+#' @param n_comp 
+#'
+#' @return
+#'
+#' @examples
+pca_irlba_for_sparseMatrix <- function(x, n_comp){
+  system.time({
+    x.means <- Matrix::colMeans(x) 
+    svd.0 <- irlba::irlba(x, center = x.means, nv=n_comp)
+    x. = sweep(x, 2, Matrix::colMeans(x),"-")
+    pca = x. %*% svd.0$v
+  })
+  return(pca)
 }
 
 #' Table of cells before / after QC
