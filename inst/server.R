@@ -100,13 +100,13 @@ shinyServer(function(input, output, session) {
   output$num_batches <- renderUI({ if(input$do_batch_corr){
     selectInput("num_batches","Select number of batches (each can have one or multiple samples):", choices=c(2:10))
   }})
-  output$batch_names <- renderUI({ if(input$do_batch_corr){
+  output$batch_names <- renderUI({ if(input$do_batch_corr & !is.null(input$num_batches)){
     lapply(1:input$num_batches, function(i){
       textInput(paste0('batch_name_', i), paste0('Batch name ', i, ':'), value = paste0('batch', i))
     })
   }})
   batch_choice <- reactive({ unique(init$annot_raw$sample_id) })
-  output$batch_sel <- renderUI({ if(input$do_batch_corr & dim(init$annot_raw)[1] > 0){
+  output$batch_sel <- renderUI({ if(input$do_batch_corr & dim(init$annot_raw)[1] > 0 & !is.null(input$num_batches)){
     lapply(1:input$num_batches, function(i){
       selectInput(paste0('batch_sel_', i), paste0('Select samples for batch ', i, ':'), choices=batch_choice(), multiple=TRUE)
     })
@@ -170,24 +170,30 @@ shinyServer(function(input, output, session) {
       incProgress(0.3, detail="reading data matrices")
 
       for(i in 1:dim(input$datafile_matrix)[1]){
-        datamatrix_single <- read.table(input$datafile_matrix$datapath[i], header = TRUE, stringsAsFactors = FALSE)
+        datamatrix_single <- Matrix::Matrix(as.matrix(read.table(input$datafile_matrix$datapath[i],
+                                                         header=TRUE, stringsAsFactors=FALSE),sparse = T))
 
         #perform some checks on data format
-        # matchingRN <- grep("[[:alnum:]]+:[[:digit:]]+-[[:digit:]]+", rownames(datamatrix_single)) # check rowname format
-        # if(length(matchingRN) < length(rownames(datamatrix_single))){
-        #   showNotification(paste0(input$datafile_matrix$name, " contains ", (length(rownames(datamatrix_single))-length(matchingRN)), " rownames that do not conform to the required format. Please check your data matrix and try again."), duration = NULL, closeButton = TRUE, type="warning")
-        #   if(length(matchingRN) < 5){ # almost all rownames are wrong
-        #     showNotification("Maybe your rownames are contained in the first column instead? In this case, remove the header of this column so that they are interpreted as rownames.", duration = NULL, closeButton = TRUE, type="warning")
-        #   }
-        #   unlink(file.path(init$data_folder, "datasets", input$new_dataset_name), recursive = TRUE)
-        #   return()
-        # }
-        # numericC <- sapply(datamatrix_single, is.numeric) # check if matrix is numeric
-        # if(sum(numericC) < ncol(datamatrix_single)){
-        #   showNotification(paste0(input$datafile_matrix$name, " contains non-numeric columns at the following indices: ", which(numericC==FALSE), ". Please check your data matrix and try again."), duration = NULL, closeButton = TRUE, type="warning")
-        #   unlink(file.path(init$data_folder, "datasets", input$new_dataset_name), recursive = TRUE)
-        #   return()
-        # }
+        matchingRN <- grep("[[:alnum:]]+(:|_)[[:digit:]]+(-|_)[[:digit:]]+", rownames(datamatrix_single)) # check rowname format
+        if(length(matchingRN) < length(rownames(datamatrix_single))){
+          showNotification(paste0(input$datafile_matrix$name, " contains ", (length(rownames(datamatrix_single))-length(matchingRN)),
+                                  " rownames that do not conform to the required format. Please check your data matrix and try again."),
+                           duration = NULL, closeButton = TRUE, type="warning")
+          if(length(matchingRN) < 5){ # almost all rownames are wrong
+            showNotification("Maybe your rownames are contained in the first column instead? 
+                             In this case, remove the header of this column so that they are
+                             interpreted as rownames.", duration = NULL, closeButton = TRUE, type="warning")
+          }
+          unlink(file.path(init$data_folder, "datasets", input$new_dataset_name), recursive = TRUE)
+          return()
+        }
+        numericC <- apply(datamatrix_single,MARGIN=2,is.numeric) # check if matrix is numeric
+        if(sum(numericC) < ncol(datamatrix_single)){
+          showNotification(paste0(input$datafile_matrix$name, " contains non-numeric columns at the following indices: ", which(numericC==FALSE), ". Please check your data matrix and try again."), duration=NULL, closeButton=TRUE, type="warning")
+          unlink(file.path(init$data_folder, "datasets", input$new_dataset_name), recursive=TRUE)
+          return()
+        }
+        gc()
         if(rownames(datamatrix_single)[1] == "1"){
           names = datamatrix_single$X0
           datamatrix_single = datamatrix_single[,-1]
@@ -196,21 +202,28 @@ shinyServer(function(input, output, session) {
         
         datamatrix_single <- datamatrix_single[!duplicated(rownames(datamatrix_single)),] #put IN for new format
         
-        rownames(datamatrix_single) <- gsub(":", "_", rownames(datamatrix_single))
-        rownames(datamatrix_single) <- gsub("-", "_", rownames(datamatrix_single))
-        
+        if(length(grep("chr",rownames(datamatrix_single)[1:10],perl = T)) >= 9){
+          rownames(datamatrix_single) <- gsub(":", "_", rownames(datamatrix_single))
+          rownames(datamatrix_single) <- gsub("-", "_", rownames(datamatrix_single))
+        }
         total_cell <- length(datamatrix_single[1,])
         sample_name <- gsub('.{4}$', '', input$datafile_matrix$name[i])
-        annot_single <- data.frame(barcode = colnames(datamatrix_single), cell_id = paste0(sample_name, "_c", 1:total_cell), sample_id = rep(sample_name, total_cell), batch_id = i)
+        annot_single <- data.frame(barcode = colnames(datamatrix_single),
+                                   cell_id = paste0(sample_name, "_c", 1:total_cell),
+                                   sample_id = rep(sample_name, total_cell),
+                                   batch_id = i)
         
         colnames(datamatrix_single) <- annot_single$cell_id
               
-        if(is.null(datamatrix)){ datamatrix <- datamatrix_single
+        if(is.null(datamatrix)){
+          datamatrix <- datamatrix_single
         }else{
           common_regions <- intersect(rownames(datamatrix), rownames(datamatrix_single))
           datamatrix <- cbind(datamatrix[common_regions,], datamatrix_single[common_regions,])
         }
+        rm(datamatrix_single);gc();
         if(is.null(annot_raw)){ annot_raw <- annot_single} else{ annot_raw <- rbind(annot_raw, annot_single)}
+        rm(annot_single);gc();
       }
       incProgress(0.7, detail="saving raw data")
 
@@ -258,7 +271,8 @@ shinyServer(function(input, output, session) {
     num_batches <- if(is.null(input$num_batches)) 0 else input$num_batches
     batch_names <- if(is.null(input$num_batches)) c() else sapply(1:input$num_batches, function(i){ input[[paste0('batch_name_', i)]] })
     batch_sels <- if(is.null(input$num_batches)) list() else lapply(1:input$num_batches, function(i){ input[[paste0('batch_sel_', i)]] })
-    
+    names(batch_sels) = batch_names
+      
     annotationId <- annotation_id_norm()
     exclude_regions <- if(input$exclude_regions) setNames(read.table(
       input$exclude_file$datapath, header = FALSE, stringsAsFactors = FALSE), c("chr", "start", "stop")) else NULL
@@ -266,7 +280,7 @@ shinyServer(function(input, output, session) {
     callModule(moduleFiltering_and_Reduction, "Module_preprocessing_filtering_and_reduction", reactive({input$selected_raw_dataset}), reactive({input$min_coverage_cell}),
                reactive({input$min_cells_window}), reactive({input$quant_removal}), reactive({init$datamatrix}), reactive({init$annot_raw}),
                reactive({init$data_folder}),reactive({annotationId}), reactive({exclude_regions}), reactive({annotCol()}),reactive({input$do_batch_corr}),
-               reactive({num_batches}),reactive({batch_names}), reactive({batch_sels}))
+                reactive({batch_sels}))
     init$available_reduced_datasets <- get.available.reduced.datasets()
     updateActionButton(session, "dim_reduction", label="Processed and saved successfully", icon = icon("check-circle"))
   })
@@ -278,7 +292,7 @@ shinyServer(function(input, output, session) {
   observeEvent({input$selected_raw_dataset  # reset label on actionButtion when new filtering should be filtered
    input$min_coverage_cell
    input$quant_removal
-   input$min_cells_window}, {
+   input$min_cells_window
    input$do_batch_corr}, {
    updateActionButton(session, "dim_reduction", label="Apply and save data set", icon = character(0))
   })
@@ -325,8 +339,6 @@ shinyServer(function(input, output, session) {
     withProgress(message='Deleting data set', value = 0, {
       incProgress(amount=0.5, detail=paste("..."))
       unlink(file.path(init$data_folder, "datasets", input$selected_delete_dataset), recursive=TRUE)
-      file.remove(list.files(path=file.path(init$data_folder, "datasets"), pattern=paste0("consClust_", dataset_name(), "*"), full.names=TRUE))
-      file.remove(list.files(path=file.path("www", "images"), pattern=paste0("consClust_", dataset_name(), "*"), full.names=TRUE))
       init$available_raw_datasets <- list.dirs(path=file.path(init$data_folder, "datasets"), full.names=FALSE, recursive=FALSE)
       init$available_reduced_datasets <- get.available.reduced.datasets()
       incProgress(amount=0.5, detail=paste("... finished"))

@@ -71,7 +71,7 @@ create_scDataset_raw <- function(cells=300,features=600,
   if(sparse) return(list("mat" =  as(mat,"dgCMatrix"), "annot" = annot)) else return(list("mat" =  mat, "annot" = annot))
 }
 
-out = create_scDataset_raw(featureType = "window", sparse = F)
+out = create_scDataset_raw(featureType = "window", sparse = T)
 datamatrix = out$mat
 annot_raw = out$annot
 
@@ -79,7 +79,7 @@ master = new.env()
 
 test_that("Re checking that seed is the same", {
   load("tests/test_scChIP/scChIP_raw.RData", master)
-  expect_equal(master$datamatrix, datamatrix )
+  expect_equal(master$datamatrix, as.matrix(datamatrix) )
   expect_equal(master$annot_raw, annot_raw )
 })
 
@@ -87,7 +87,7 @@ scExp = create_scExp(datamatrix,annot_raw)
 
 test_that("Step 1 : creating scExp", {
   load("tests/test_scChIP/filter_red_01.RData", master)
-  expect_equal(assay(master$umi), assay(scExp))
+  expect_equal(assay(master$umi), as.matrix(assay(scExp)) )
   expect_equal(colData(master$umi), colData(scExp))
 })
 
@@ -95,7 +95,7 @@ scExp = filter_scExp(scExp)
 
 test_that("Step 2 : filtering ", {
   load("tests/test_scChIP/filter_red_02.RData", master)
-  expect_equal(master$SelMatCov, assay(scExp))
+  expect_equal(master$SelMatCov, as.matrix(assay(scExp)))
 })
 
 regions_to_exclude = read.table("../../Data/Annotation/bed/MM468_5FU3_all_5FU5_initial_CNV_from_ChIP_input.bed")
@@ -103,13 +103,13 @@ scExp = exclude_features_scExp(scExp,features_to_exclude = regions_to_exclude, b
 
 test_that("Step 3 : remove specific features ", {
   load("tests/test_scChIP/filter_red_03.RData", master)
-  expect_equal(master$SelMatCov, assay(scExp))
+  expect_equal(master$SelMatCov, as.matrix(assay(scExp)))
 })
 
 scExp = normalize_scExp(scExp, "CPM")
 test_that("Step 4 : Normalize ", {
   load("tests/test_scChIP/filter_red_04.RData", master)
-  expect_equivalent(master$norm_mat, normcounts(scExp))
+  expect_equivalent(master$norm_mat, as.matrix(normcounts(scExp)) )
 })
 
 scExp = feature_annotation_scExp(scExp,ref="hg38")
@@ -140,8 +140,11 @@ scExp = reduce_dims_scExp(scExp)
 test_that("Step 7 : dimensionality reduction", {
   
   load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected.RData", master)
-  
-  expect_equal(as.data.frame(master$pca),reducedDim(scExp,"PCA"))
+  expect_equal(as.data.frame(master$pca), reducedDim(scExp,"PCA"))
+  expect_equal(cor(master$pca[,1], reducedDim(scExp,"PCA")[,1]), -1)
+  expect_equal(cor(master$pca[,2], reducedDim(scExp,"PCA")[,2]), 1)
+  expect_equal(cor(master$pca[,3], reducedDim(scExp,"PCA")[,3]), 1)
+
 })
 
 scExp = correlation_and_hierarchical_clust_scExp(scExp)
@@ -157,9 +160,11 @@ test_that("Step 8 : correlation & hiearchical clust", {
   expect_equal(cor(t(master$pca)),reducedDim(scExp,"Cor") )
   expect_equal(colnames(cor(t(master$pca))),colnames(reducedDim(scExp,"Cor")) )
   expect_equal(rownames(cor(t(master$pca))),rownames(reducedDim(scExp,"Cor")) )
+
 })
 
-scExp_cf = filter_correlated_cell_scExp(scExp,random_iter = 500)
+
+scExp_cf = filter_correlated_cell_scExp(scExp,random_iter = 50)
 
 test_that("Step 9 : correlation filterin clust", {
   

@@ -21,7 +21,7 @@ geco.distPearson <- function(m) {
 #' @export
 #'
 geco.CompareWilcox <- function(dataMat = NULL, annot = NULL, ref = NULL,
-                               groups = NULL, featureTab = NULL) {
+                               groups = NULL, featureTab = NULL, block = NULL) {
     res = featureTab
     # res = res[order(res$ID), ]
     # dataMat = dataMat[order(row.names(dataMat)), ]
@@ -33,23 +33,29 @@ geco.CompareWilcox <- function(dataMat = NULL, annot = NULL, ref = NULL,
         }
         gpsamp <- groups[[k]]
         
-        annot. <- annot[c(refsamp, gpsamp), 1:2]
+        annot. <- annot[c(refsamp, gpsamp), c("barcode","cell_id","batch_id")]
         annot.$Condition <- c(rep("ref", length(refsamp)), rep("gpsamp", length(gpsamp)))
         
-        mat. <- dataMat[, c(as.character(refsamp), as.character(gpsamp))]
+        cells_cluster = data.frame(cell_id = as.character(colnames(dataMat)))
+        cells_cluster = dplyr::left_join(cells_cluster,annot.,by="cell_id")
         
-        testWilc <- apply(dataMat, 1, function(x) wilcox.test(as.numeric(x[as.character(refsamp)]), as.numeric(x[as.character(gpsamp)])))
-        pval.gpsamp <- unlist(lapply(testWilc, function(x) x$p.value))
+        if(!is.null(block)){
+            log2Datamat = log2(dataMat+1)
+            testWilc <- scran::pairwiseWilcox(x = log2Datamat, clusters = cells_cluster$Condition, block = cells_cluster$batch_id, direction = "any")
+            pval.gpsamp <- testWilc$statistics[[1]]$p.value
+        } else{
+            testWilc <- apply(dataMat, 1, function(x) wilcox.test(as.numeric(x[as.character(refsamp)]), as.numeric(x[as.character(gpsamp)])))
+            pval.gpsamp <- unlist(lapply(testWilc, function(x) x$p.value))
+        }
+        
         qval.gpsamp <- p.adjust(pval.gpsamp, method = "BH")
         Count.gpsamp <- apply(dataMat, 1, function(x) mean(x[as.character(gpsamp)]))
         cdiff.gpsamp <- apply(dataMat, 1, function(x) log(mean(x[as.character(gpsamp)])/mean(x[as.character(refsamp)]), 2))
-        # cdiff1.gpsamp <- apply(dataMat, 1, function(x) mean(x[as.character(gpsamp)]) - 2*mean(x[as.character(refsamp)])) cdiff2.gpsamp
-        # <- apply(dataMat, 1, function(x) mean(x[as.character(gpsamp)]) - 0.5*mean(x[as.character(refsamp)]))
+        
         Rank.gpsamp <- rank(qval.gpsamp)  # This is different from the rank used in the Wilcox.test !! 
         
         res <- data.frame(res, Rank.gpsamp, Count.gpsamp, cdiff.gpsamp, pval.gpsamp, qval.gpsamp)
-        # res <- data.frame(res, Rank.gpsamp, Count.gpsamp, cdiff1.gpsamp,cdiff2.gpsamp, pval.gpsamp, qval.gpsamp)
-        
+
         colnames(res) <- sub("ref", names(ref)[min(c(k, length(ref)))], sub("gpsamp", names(groups)[k], colnames(res)))
     }
     res

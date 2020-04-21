@@ -5,12 +5,10 @@ context("Testing preprocessing, filtering & reduction functions")
 # Functions for testing purposes
 create_scDataset_raw <- function(cells=300,features=600,
                                  featureType = c("window","peak","gene"),
-                                sparse=T, nsamp=4, ref = "hg38",batch_id = rep(1,nsamp)) {
+                                sparse=T, nsamp=4, ref = "hg38", batch_id = rep(1,nsamp)) {
   
   stopifnot(featureType %in% c("window","peak","gene"), ref %in% c("mm10","hg38"),
             nsamp >= 1, cells >= nsamp, features >=1, length(batch_id) == nsamp)
-  
-  stopifnot()
   
   set.seed(47)
   
@@ -56,20 +54,85 @@ create_scDataset_raw <- function(cells=300,features=600,
     eval(parse(text = paste0("chr <- ChromSCape::",ref,".GeneTSS"))) #load species chromsizes
     features_names = as.character(sample(chr$gene,features,replace = F))
   }
+  
+  
   vec = rpois(cells*features,0.5) #Add count to values > 0, iteratively
   for(i in 1:10) vec[vec >= i] = vec[vec >= i]  +  i^2*rpois(length(vec[vec >= i]),0.5)
-  mat = matrix(vec, nrow = features, ncol = cells, 
-               dimnames = list( features_names,cell_names))
-  annot = data.frame(cell_id = cell_names,
+  
+  indices_vec = which(vec>0)
+  j = ceiling(indices_vec / features)
+  i = ceiling(indices_vec %% features)+1
+    if(sparse) mat = Matrix::sparseMatrix(i,j,x = vec[indices_vec], dims =c(features, cells), 
+                     dimnames = list( features_names,cell_names)) else
+                       mat = matrix(vec, nrow = features, ncol = cells, 
+                                    dimnames = list( features_names,cell_names))
+  if(length(unique(batches)) > 1 ) {
+    
+     mat = mat %*% as(Matrix::diag(batches*batches),"dgCMatrix")
+  }
+  colnames(mat) = cell_names
+  annot = data.frame(barcode = paste0("BC",1:cells),
+                     cell_id = cell_names,
                      sample_id = sample,
                      batch_id = batches,
                      total_counts = Matrix::colSums(mat))
-  if(sparse) return(list("mat" =  as(mat,"dgCMatrix"), "annot" = annot)) else return(list("mat" =  mat, "annot" = annot))
+    return(list("mat" =  mat, "annot" = annot, "batches" = batches))
 }
 
-out = create_scDataset_raw(featureType = "window")
+out = create_scDataset_raw(featureType = "window",sparse = T, batch_id = c(1,1,2,2))
 mat = out$mat
 annot = out$annot
+batches = out$batches
+
+#test sparse matrix
+test_that("Sparse matrices", {
+scExp = create_scExp(mat,annot)
+expect_is(counts(scExp),"dgCMatrix")
+scExp = filter_scExp(scExp)
+expect_is(counts(scExp),"dgCMatrix")
+scExp = normalize_scExp(scExp,type = "RPKM")
+expect_is(normcounts(scExp),"dgCMatrix")
+scExp = reduce_dims_scExp(scExp,n = 50,batch_correction = F)
+expect_is(reducedDim(scExp,"PCA"),"data.frame")
+
+scExp = colors_scExp(scExp,annotCol = c("sample_id","batch_id","total_counts"))
+plot_reduced_dim_scExp(scExp,reduced_dim = "PCA",color_by = "sample_id")
+
+scExp = correlation_and_hierarchical_clust_scExp(scExp)
+expect_is(normcounts(scExp),"dgCMatrix")
+scExp = filter_correlated_cell_scExp(scExp)
+expect_is(normcounts(scExp),"dgCMatrix")
+scExp = consensus_clustering_scExp(scExp,prefix = "")
+expect_is(normcounts(scExp),"dgCMatrix")
+expect_is(scExp@metadata$consclust,"list")
+expect_is(scExp@metadata$consclust[[2]]$consensusMatrix,"matrix")
+scExp = choose_cluster_scExp(scExp)
+expect_is(normcounts(scExp),"dgCMatrix")
+scExp = differential_analysis_scExp(scExp)
+expect_is(normcounts(scExp),"dgCMatrix")
+scExp = gene_set_enrichment_analysis_scExp(scExp,ref = "hg38",use_peaks = F)
+expect_is(normcounts(scExp),"dgCMatrix")
+
+})
+
+#test sparse matrix + batch correction
+test_that("Sparse matrices + Batch Correction", {
+  scExp = create_scExp(mat,annot)
+  expect_is(counts(scExp),"dgCMatrix")
+  scExp = filter_scExp(scExp)
+  expect_is(counts(scExp),"dgCMatrix")
+  # scExp = normalize_scExp(scExp,type = "feature_size_only")
+  # expect_is(normcounts(scExp),"dgCMatrix")
+  scExp = reduce_dims_scExp(scExp,n = 50,batch_correction = T,
+                            batch_list = list("batch_1"=c("sample_1","sample_2"),
+                                              "batch_2"=c("sample_3","sample_4")))
+  
+  expect_is(reducedDim(scExp,"PCA"),"data.frame")
+  
+  scExp = colors_scExp(scExp,annotCol = c("sample_id","batch_id","total_counts"))
+  plot_reduced_dim_scExp(scExp,reduced_dim = "PCA",color_by = "sample_id")
+
+})
 
 #### create_scExp
 # Wrapper to create the single cell experiment from sparse datamatrix and annot, remove Zero 
@@ -267,3 +330,6 @@ test_that("Dimensionality reduction right input", {
   pca_2 = as.data.frame(prcomp(Matrix::t(normcounts(scExp.)), retx = T, center = T, scale. = F)$x[,1:50])
   expect_equal(pca_1, pca_2)
 })
+
+
+

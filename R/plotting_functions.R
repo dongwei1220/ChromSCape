@@ -138,6 +138,10 @@ plot_reduced_dim_scExp <- function(scExp, color_by = "sample_id", reduced_dim = 
   if(! color_by %in% colnames(SingleCellExperiment::colData(scExp))) 
     stop("ChromSCape::plot_reduced_dim_scExp - color_by must be present in colnames of colData(scExp).")
   
+  if(! paste0(color_by,"_color") %in% colnames(SingleCellExperiment::colData(scExp))) 
+    stop("ChromSCape::plot_reduced_dim_scExp - color_by's color column must be present 
+         in colnames of colData(scExp). Please run color_scExp first.")
+  
   if(! select_x %in% colnames(SingleCellExperiment::reducedDim(scExp,reduced_dim[1])) ) 
     stop("ChromSCape::plot_reduced_dim_scExp - select_x must be present in colnames of PCA of scExp.")
   
@@ -178,7 +182,8 @@ plot_reduced_dim_scExp <- function(scExp, color_by = "sample_id", reduced_dim = 
 #' @examples
 #' @importFrom SingleCellExperiment reducedDim reducedDimNames colData
 #' @importFrom grDevices colorRampPalette
-plot_heatmap_scExp <- function(scExp, name_hc = "hc_cor", corColors = grDevices::colorRampPalette(c("royalblue","white","indianred1"))(256)){
+plot_heatmap_scExp <- function(scExp, name_hc = "hc_cor",
+                               corColors = grDevices::colorRampPalette(c("royalblue","white","indianred1"))(256)){
   
   #make a variety of sanity check
   stopifnot(is(scExp,"SingleCellExperiment"))
@@ -191,14 +196,15 @@ plot_heatmap_scExp <- function(scExp, name_hc = "hc_cor", corColors = grDevices:
   if( length(scExp@metadata[[name_hc]]$order) != ncol(scExp))
     stop("ChromSCape::plot_heatmap_scExp - Dendrogram has different number of cells than dataset.")
   
-  anocol = as.matrix(SingleCellExperiment::colData(scExp)[,grep("_color",colnames(SingleCellExperiment::colData(scExp)))])
+  anocol = as.matrix(SingleCellExperiment::colData(scExp)[,grep("_color",colnames(SingleCellExperiment::colData(scExp))),
+                                                          drop = F])
   
   geco.hclustAnnotHeatmapPlot(
     x=SingleCellExperiment::reducedDim(scExp,"Cor")[scExp@metadata[[name_hc]]$order,
                                                     scExp@metadata[[name_hc]]$order],
     hc=scExp@metadata[[name_hc]],
     hmColors=corColors,
-    anocol=anocol[scExp@metadata[[name_hc]]$order,],
+    anocol=as.matrix(anocol[scExp@metadata[[name_hc]]$order,]),
     xpos=c(0.15, 0.9, 0.164, 0.885),
     ypos=c(0.1, 0.5, 0.5, 0.6, 0.62, 0.95),
     dendro.cex=0.04,

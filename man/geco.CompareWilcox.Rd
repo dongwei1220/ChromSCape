@@ -9,7 +9,8 @@ geco.CompareWilcox(
   annot = NULL,
   ref = NULL,
   groups = NULL,
-  featureTab = NULL
+  featureTab = NULL,
+  block = NULL
 )
 }
 \arguments{

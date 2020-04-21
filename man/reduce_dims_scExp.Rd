@@ -8,6 +8,8 @@ reduce_dims_scExp(
   scExp,
   dimension_reductions = c("PCA", "TSNE"),
   n = 50,
+  batch_correction = F,
+  batch_list = NULL,
   verbose = T
 )
 }

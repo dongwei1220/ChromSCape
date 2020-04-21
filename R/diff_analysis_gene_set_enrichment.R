@@ -42,6 +42,9 @@ differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
   if(! "chromatin_group" %in% colnames(SingleCellExperiment::colData(scExp))) 
     stop("ChromSCape::run_differential_analysis_scExp - scExp object must have selected number of clusters.") 
   
+  if( FALSE %in% (c("chr","start","end") %in% colnames(SingleCellExperiment::rowData(scExp))))
+    stop("ChromSCape::run_differential_analysis_scExp - Please run feature_annotation_scExp first.") 
+  
   nclust = length(unique(SingleCellExperiment::colData(scExp)$chromatin_group))
   
   counts = SingleCellExperiment::normcounts(scExp)

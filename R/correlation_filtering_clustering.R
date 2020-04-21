@@ -261,7 +261,7 @@ consensus_clustering_scExp <- function(scExp, prefix = NULL, maxK = 10, reps = 1
   if(is.null(SingleCellExperiment::reducedDim(scExp,"PCA"))) stop(
     "ChromSCape::consensus_clustering_scExp - No PCA, run reduced_dim before filtering.")
   
-  if(is.null(prefix) | prefix == "") {
+  if(length(prefix) == 0) {
     plot_consclust = NULL
     plot_icl = NULL
     prefix = ""
