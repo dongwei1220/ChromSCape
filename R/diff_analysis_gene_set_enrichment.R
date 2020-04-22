@@ -21,6 +21,7 @@
 #' 'pairwise' to make 1 to 1 comparisons. ['one_vs_rest']
 #' @param qval.th Adjusted p-value threshold. [0.01]
 #' @param cdiff.th Fold change threshold. [1]
+#' @param block 
 #'
 #' @return Returns a SingleCellExperiment object containing a differential list.
 #' @export
@@ -31,7 +32,7 @@
 #' @importFrom SingleCellExperiment colData normcounts rowData
 #' @importFrom rlist list.append
 differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
-                                           qval.th = 0.01, cdiff.th = 1)
+                                           qval.th = 0.01, cdiff.th = 1, block = NULL)
   {
   stopifnot(is(scExp, "SingleCellExperiment"), is.character(de_type),
             is.numeric(qval.th), is.numeric(cdiff.th))
@@ -69,7 +70,8 @@ differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
     refs = names(myrefs)
     res = geco.CompareWilcox(dataMat = counts, annot = affectation,
                              ref = myrefs, groups = mygps,
-                             featureTab = feature)
+                             featureTab = feature,
+                             block = block)
     
   } else { # pairwise one-vs-one testing for each cluster
     

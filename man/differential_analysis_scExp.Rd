@@ -8,7 +8,8 @@ differential_analysis_scExp(
   scExp,
   de_type = "one_vs_rest",
   qval.th = 0.01,
-  cdiff.th = 1
+  cdiff.th = 1,
+  block = NULL
 )
 }
 \arguments{
@@ -20,6 +21,8 @@ differential_analysis_scExp(
 \item{qval.th}{Adjusted p-value threshold. [0.01]}
 
 \item{cdiff.th}{Fold change threshold. [1]}
+
+\item{block}{}
 }
 \value{
 Returns a SingleCellExperiment object containing a differential list.

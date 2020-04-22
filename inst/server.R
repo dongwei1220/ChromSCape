@@ -1040,7 +1040,7 @@ output$anno_cc_box <- renderUI({
       incProgress(amount = 0.2, detail = paste("Initializing DA"))
       if(batchUsed()) block = T else block = F
       scExp_cf(differential_analysis_scExp(scExp_cf(), de_type = input$de_type,
-                                           cdiff.th = input$cdiff.th, qval.th = input$qval.th), block) 
+                                           cdiff.th = input$cdiff.th, qval.th = input$qval.th, block)) 
       incProgress(amount = 0.6, detail = paste("Finished DA"))
       data = list("scExp_cf" = scExp_cf())
       save(data, file = file.path(init$data_folder, "datasets", dataset_name(), "diff_analysis_GSEA",
