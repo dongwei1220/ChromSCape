@@ -73,7 +73,7 @@ correlation_and_hierarchical_clust_scExp <- function(scExp, correlation = "pears
 #' @importFrom Rtsne Rtsne
 #' @importFrom stats cor hclust as.dist
 filter_correlated_cell_scExp <- function(scExp, random_iter = 50, corr_threshold = 99,
-                                         percent_correlation = 1, verbose = T, seed = 47){
+                                         percent_correlation = 1, verbose = F, seed = 47){
   
   stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(random_iter),
             is.numeric(corr_threshold), is.numeric(percent_correlation))
@@ -112,7 +112,16 @@ filter_correlated_cell_scExp <- function(scExp, random_iter = 50, corr_threshold
                       dims = 2, max_iter = 1000, pca = FALSE, theta = 0,
                       perplexity = choose_perplexity(SingleCellExperiment::reducedDim(scExp,"PCA")),
                       verbose = verbose)
-  SingleCellExperiment::reducedDim(scExp,"TSNE") = as.data.frame(tsne$Y)
+  tsne = as.data.frame(tsne$Y)
+  colnames(tsne) = c("Component_1","Component_2")
+  SingleCellExperiment::reducedDim(scExp,"TSNE") = tsne
+  
+  config = umap::umap.defaults
+  config$metric = "cosine"
+  umap = umap::umap(SingleCellExperiment::reducedDim(scExp,"PCA"), config = config, method = "naive")
+  umap = as.data.frame(umap$layout)
+  colnames(umap) = c("Component_1", "Component_2")
+  SingleCellExperiment::reducedDim(scExp,"UMAP") = umap
   
   hc_cor_cor_filtered <- stats::hclust(stats::as.dist(1 - SingleCellExperiment::reducedDim(scExp,"Cor")),
                                        method="ward.D")
@@ -135,7 +144,6 @@ filter_correlated_cell_scExp <- function(scExp, random_iter = 50, corr_threshold
 #' @importFrom SingleCellExperiment colData
 #' @importFrom dplyr bind_rows tibble left_join mutate
 #' @importFrom kableExtra kable kable_styling group_rows
-#' @importFrom gplots col2hex
 num_cell_before_cor_filt_scExp <- function(scExp){
   
   stopifnot(is(scExp, "SingleCellExperiment"))
@@ -151,7 +159,7 @@ num_cell_before_cor_filt_scExp <- function(scExp){
   colors = as.vector(as.character(dplyr::left_join(table,colors,
                                                    by=c("Sample"="sample_id"))[,"sample_id_color"])
   )
-  colors = c(gplots::col2hex(colors),"")
+  colors = c(col2hex(colors),"")
   
   table[,1] = as.character(table[,1])
   table = table %>% dplyr::bind_rows(., dplyr::tibble(Sample="",
@@ -174,7 +182,7 @@ num_cell_before_cor_filt_scExp <- function(scExp){
 #' @importFrom SingleCellExperiment colData
 #' @importFrom dplyr bind_rows tibble left_join mutate
 #' @importFrom kableExtra kable kable_styling group_rows cell_spec
-#' @importFrom gplots col2hex
+
 num_cell_after_cor_filt_scExp <- function(scExp,scExp_cf){
   
   stopifnot(is(scExp, "SingleCellExperiment"), is(scExp_cf, "SingleCellExperiment"))
@@ -191,7 +199,7 @@ num_cell_after_cor_filt_scExp <- function(scExp,scExp_cf){
   colors = as.vector(as.character(dplyr::left_join(table,colors,
                                                    by=c("Sample"="sample_id"))[,"sample_id_color"])
   )
-  colors = c(gplots::col2hex(colors),"")
+  colors = c(col2hex(colors),"")
   
   table_both = dplyr::left_join(table,table_filtered, by=c("Sample"))
   table_both[,1] = as.character(table_both[,1])
@@ -348,7 +356,6 @@ choose_cluster_scExp <- function(scExp, nclust = 3, hc_linkage = "ward.D"){
 #'
 #' @examples
 #' @importFrom SingleCellExperiment colData
-#' @importFrom gplots col2hex
 #' @importFrom Matrix t rowSums
 #' @importFrom stats chisq.test
 #' @importFrom kableExtra kable kable_styling group_rows cell_spec
@@ -381,8 +388,8 @@ num_cell_in_cluster_scExp <- function(scExp){
   chi_pvalues[which(chi_pvalues==0)] <- "<0.00001"
   chi_pvalues = c(chi_pvalues,"")
   
-  colors_chromatin_group = gplots::col2hex(unique(SingleCellExperiment::colData(scExp)[,"chromatin_group_color"]))
-  colors_sample_id = gplots::col2hex(unique(SingleCellExperiment::colData(scExp)[,"sample_id_color"]))
+  colors_chromatin_group = col2hex(unique(SingleCellExperiment::colData(scExp)[,"chromatin_group_color"]))
+  colors_sample_id = col2hex(unique(SingleCellExperiment::colData(scExp)[,"sample_id_color"]))
   
   tab <- rbind(tab, colSums(table_raw))
   tab <- cbind(tab, "#Cells" = c(Matrix::rowSums(table_raw),

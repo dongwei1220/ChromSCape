@@ -23,6 +23,8 @@ filter_scExp(
 \item{percentMin}{Minimum percent of cells 'ON' in feature. [1]}
 
 \item{bin_min_count}{Minimum number of counts to define if cell is 'ON'. [2]}
+
+\item{verbose}{[T]}
 }
 \value{
 Returns a filtered SingleCellExperiment object.

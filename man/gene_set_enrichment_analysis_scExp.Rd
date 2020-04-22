@@ -40,10 +40,6 @@ Gencode list of genes fro specified reference genome. [NULL]}
 \item{peak_distance}{Maximum distance of feature to gene TSS to consider associated, in bp. [1000]}
 
 \item{use_peaks}{Use peak calling method (must be calculated beforehand). [F]}
-
-\item{peak_window}{If use_peaks is TRUE, the peak_window object calculated during peak calling. [NULL]}
-
-\item{peak_gene}{If use_peaks is TRUE, the peak_gene object calculated during peak calling. [NULL]}
 }
 \value{
 Returns a SingleCellExperiment object containing list of enriched Gene Sets for each cluster, either

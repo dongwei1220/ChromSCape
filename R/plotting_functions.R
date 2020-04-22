@@ -15,7 +15,7 @@
 #'
 #' @examples
 #' 
-#' @importFrom ggplot2 ggplot geom_histogram labs theme aes
+#' @import ggplot2
 #' @importFrom Matrix colSums
 #' @importFrom SummarizedExperiment assayNames
 plot_distribution_scExp <- function(scExp, raw = T, log10 = F, 
@@ -104,32 +104,29 @@ get_color_dataframe_from_input <- function(input, levels_selected, color_by =c("
   return(color_df)
 }
 
-#Wrapper for plotting PCA & TSNE
-#' Plot reduced dimensions (PCA, TSNE)
+#Wrapper for plotting PCA & TSNE & UMAP
+#' Plot reduced dimensions (PCA, TSNE, UMAP)
 #'
 #' @param scExp 
 #' @param color_by 
 #' @param reduced_dim 
 #' @param select_x 
 #' @param select_y 
-#' @param annot_label 
 #'
 #' @return
 #' @export
 #'
 #' @examples
 #' @importFrom SingleCellExperiment reducedDim reducedDimNames colData
-#' @importFrom ggplot2 ggplot geom_point geom_text theme labs
-#'  aes scale_color_gradientn scale_color_manual aes_string
+#' @import ggplot2
 #' @importFrom colorRamps matlab.like
 
-plot_reduced_dim_scExp <- function(scExp, color_by = "sample_id", reduced_dim = c("PCA","TSNE"),
-                                   select_x = "PC1", select_y = "PC2", annot_label = "none")
+plot_reduced_dim_scExp <- function(scExp, color_by = "sample_id", reduced_dim = c("PCA","TSNE", "UMAP"),
+                                   select_x = "Component_1", select_y = "Component_2")
   {
   
   stopifnot(is(scExp,"SingleCellExperiment"), is.character(color_by), 
-            is.character(reduced_dim),  is.character(select_x), is.character(select_y),
-            is.character(annot_label))
+            is.character(reduced_dim),  is.character(select_x), is.character(select_y))
   
   if(! reduced_dim[1] %in% SingleCellExperiment::reducedDimNames(scExp)) 
     stop(paste0("ChromSCape::plot_reduced_dim_scExp - ",reduced_dim[1],
@@ -157,10 +154,7 @@ plot_reduced_dim_scExp <- function(scExp, color_by = "sample_id", reduced_dim = 
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(), axis.line = element_line(colour="black"),
           panel.border = element_rect(colour="black", fill=NA))
-  
-  if(annot_label != 'none'){
-    p <- p + geom_text(aes(label=SingleCellExperiment::colData(scExp)[, annot_label])) 
-  }
+
   if(color_by == 'total_counts'){
     p <- p + scale_color_gradientn(colours = matlab.like(100))
   } else {
@@ -307,9 +301,25 @@ plot_differential_volcano_scExp <- function(scExp_cf, chromatin_group = "C1", cd
 #'
 #' @param n num hues
 #'
+#' @importFrom grDevices hcl
 #' @export
 gg_fill_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
-  hcl(h = hues, l = 65, c = 100)[1:n]
+  grDevices::hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
+
+#' Title
+#'
+#' @param cname 
+#'
+#' @return
+#' @importFrom grDevices col2rgb rgb
+#'
+#' @examples
+col2hex <- function (cname) 
+{
+  colMat <- grDevices::col2rgb(cname)
+  grDevices::rgb(red = colMat[1, ]/255, green = colMat[2, ]/255, blue = colMat[3, 
+                                                                    ]/255)
+}

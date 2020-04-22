@@ -4,11 +4,17 @@
 #'  dashboardHeader dashboardSidebar dashboardPage menuItem
 #' @importFrom shinyDirectoryInput choose.dir directoryInput readDirectoryInput updateDirectoryInput
 #' @importFrom shinyjs useShinyjs extendShinyjs html  
-#' @importFrom Matrix rowMeans
+#' @importFrom Matrix rowMeans cbind2
 #' @importFrom dplyr select mutate %>%
 #' @importFrom viridis scale_color_viridis
 #' @importFrom tidyr separate_rows
+#' @importFrom scater readSparseCounts
+#' @importFrom grDevices dev.off pdf
+#' @importFrom methods as is
+#' @importFrom stats median quantile setNames wilcox.test
+#' @importFrom utils read.table
 #' @import shiny
+#' @import utils
 #' @import ggplot2
 NULL
 

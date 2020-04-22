@@ -2,15 +2,14 @@
 % Please edit documentation in R/plotting_functions.R
 \name{plot_reduced_dim_scExp}
 \alias{plot_reduced_dim_scExp}
-\title{Plot reduced dimensions (PCA, TSNE)}
+\title{Plot reduced dimensions (PCA, TSNE, UMAP)}
 \usage{
 plot_reduced_dim_scExp(
   scExp,
   color_by = "sample_id",
-  reduced_dim = c("PCA", "TSNE"),
-  select_x = "PC1",
-  select_y = "PC2",
-  annot_label = "none"
+  reduced_dim = c("PCA", "TSNE", "UMAP"),
+  select_x = "Component_1",
+  select_y = "Component_2"
 )
 }
 \arguments{
@@ -23,12 +22,10 @@ plot_reduced_dim_scExp(
 \item{select_x}{}
 
 \item{select_y}{}
-
-\item{annot_label}{}
 }
 \value{
 
 }
 \description{
-Plot reduced dimensions (PCA, TSNE)
+Plot reduced dimensions (PCA, TSNE, UMAP)
 }

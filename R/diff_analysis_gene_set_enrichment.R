@@ -166,8 +166,6 @@ differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
 #' @param cdiff.th Fold change threshold to define differential features. [1]
 #' @param peak_distance Maximum distance of feature to gene TSS to consider associated, in bp. [1000]
 #' @param use_peaks Use peak calling method (must be calculated beforehand). [F]
-#' @param peak_window If use_peaks is TRUE, the peak_window object calculated during peak calling. [NULL]
-#' @param peak_gene If use_peaks is TRUE, the peak_gene object calculated during peak calling. [NULL]
 #'
 #' @return Returns a SingleCellExperiment object containing list of enriched Gene Sets for each cluster, either
 #' in depleted features, enriched features or simply differential features (both). 
@@ -207,8 +205,9 @@ gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref 
   if(is.null(GeneSets) | is.null(GeneSetsDf)) {
     message(paste0("ChromSCape::gene_set_enrichment_analysis_scExp - Selecting ",ref," MSigDB gene sets."))
     eval(parse(text = paste0("data(",ref,".MSigDB)")))
-    GeneSets = MSIG.ls
-    GeneSetsDf = MSIG.gs
+    eval(parse(text = paste0("GeneSets = ",ref,".MSIG.ls")))
+    eval(parse(text = paste0("GeneSetsDf = ",ref,".MSIG.gs")))
+
   }
   
   if(is.null(GenePool)) {

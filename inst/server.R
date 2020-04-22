@@ -170,10 +170,11 @@ shinyServer(function(input, output, session) {
       incProgress(0.3, detail="reading data matrices")
 
       for(i in 1:dim(input$datafile_matrix)[1]){
-        datamatrix_single <- Matrix::Matrix(as.matrix(read.table(input$datafile_matrix$datapath[i],
-                                                         header=TRUE, stringsAsFactors=FALSE),sparse = T))
 
+        datamatrix_single <- scater::readSparseCounts(input$datafile_matrix$datapath[i], sep="\t")
+        gc()
         #perform some checks on data format
+
         matchingRN <- grep("[[:alnum:]]+(:|_)[[:digit:]]+(-|_)[[:digit:]]+", rownames(datamatrix_single)) # check rowname format
         if(length(matchingRN) < length(rownames(datamatrix_single))){
           showNotification(paste0(input$datafile_matrix$name, " contains ", (length(rownames(datamatrix_single))-length(matchingRN)),
@@ -187,48 +188,51 @@ shinyServer(function(input, output, session) {
           unlink(file.path(init$data_folder, "datasets", input$new_dataset_name), recursive = TRUE)
           return()
         }
-        numericC <- apply(datamatrix_single,MARGIN=2,is.numeric) # check if matrix is numeric
-        if(sum(numericC) < ncol(datamatrix_single)){
+
+        numericC <- apply(head(datamatrix_single),MARGIN=2,is.numeric) # check if matrix is numeric
+        if(sum(numericC) < ncol(head(datamatrix_single))){
           showNotification(paste0(input$datafile_matrix$name, " contains non-numeric columns at the following indices: ", which(numericC==FALSE), ". Please check your data matrix and try again."), duration=NULL, closeButton=TRUE, type="warning")
           unlink(file.path(init$data_folder, "datasets", input$new_dataset_name), recursive=TRUE)
           return()
         }
-        gc()
+
         if(rownames(datamatrix_single)[1] == "1"){
           names = datamatrix_single$X0
           datamatrix_single = datamatrix_single[,-1]
           rownames(datamatrix_single) = names
         }
-        
+
         datamatrix_single <- datamatrix_single[!duplicated(rownames(datamatrix_single)),] #put IN for new format
-        
+
         if(length(grep("chr",rownames(datamatrix_single)[1:10],perl = T)) >= 9){
+
           rownames(datamatrix_single) <- gsub(":", "_", rownames(datamatrix_single))
+
           rownames(datamatrix_single) <- gsub("-", "_", rownames(datamatrix_single))
         }
+        gc()
         total_cell <- length(datamatrix_single[1,])
+
         sample_name <- gsub('.{4}$', '', input$datafile_matrix$name[i])
+
         annot_single <- data.frame(barcode = colnames(datamatrix_single),
                                    cell_id = paste0(sample_name, "_c", 1:total_cell),
                                    sample_id = rep(sample_name, total_cell),
                                    batch_id = i)
-        
         colnames(datamatrix_single) <- annot_single$cell_id
-              
         if(is.null(datamatrix)){
           datamatrix <- datamatrix_single
         }else{
+          
           common_regions <- intersect(rownames(datamatrix), rownames(datamatrix_single))
-          datamatrix <- cbind(datamatrix[common_regions,], datamatrix_single[common_regions,])
+          datamatrix <- Matrix::cbind2(datamatrix[common_regions,], datamatrix_single[common_regions,])
         }
         rm(datamatrix_single);gc();
         if(is.null(annot_raw)){ annot_raw <- annot_single} else{ annot_raw <- rbind(annot_raw, annot_single)}
         rm(annot_single);gc();
       }
       incProgress(0.7, detail="saving raw data")
-
       save(datamatrix, annot_raw, file = file.path(init$data_folder, "datasets", input$new_dataset_name, "scChIP_raw.RData"))
-      
       init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
       init$datamatrix <- datamatrix
       init$annot_raw <- annot_raw
@@ -365,19 +369,16 @@ shinyServer(function(input, output, session) {
   # 2. PCA
   ###############################################################
   
-  output$pc_select_x <- renderUI({ selectInput("pc_select_x", "X",choices=paste0("PC", c(1:15)), selected="PC1") })
-  output$pc_select_y <- renderUI({ selectInput("pc_select_y", "Y",choices=paste0("PC", c(1:15)), selected="PC2") })
+  output$pc_select_x <- renderUI({ selectInput("pc_select_x", "X",choices=paste0("Component_", c(1:15)), selected="Component_1") })
+  output$pc_select_y <- renderUI({ selectInput("pc_select_y", "Y",choices=paste0("Component_", c(1:15)), selected="Component_2") })
   output$color_by <- renderUI({selectInput("color_by", "Color by", choices=annotCol()) })
-  output$pca_anno_2D <- renderUI({selectInput("pca_anno_2D", "Labels", choices=c('none',annotCol())) })
-  output$tsne_anno <- renderUI({selectInput("tsne_anno", "Labels", choices=c('none', annotCol())) })
-  
+
   pca_plot <- reactive({
-    req(scExp(), input$pc_select_x,input$pc_select_y, input$pca_anno_2D, input$color_by)
+    req(scExp(), input$pc_select_x,input$pc_select_y,  input$color_by)
 
     p = plot_reduced_dim_scExp(scExp(),input$color_by, "PCA",
                                select_x = input$pc_select_x,
-                               select_y = input$pc_select_y,
-                               annot_label = input$pca_anno_2D
+                               select_y = input$pc_select_y
     )
     unlocked$list$pca=T
     p
@@ -385,16 +386,21 @@ shinyServer(function(input, output, session) {
   output$pca_plot <- plotly::renderPlotly( plotly::ggplotly(pca_plot(), tooltip="Sample", dynamicTicks=T) )
   
   tsne_plot <- reactive({
-    req(scExp(), input$pca_anno_2D, input$color_by)
-    p = plot_reduced_dim_scExp(scExp(),input$color_by, "TSNE",
-                               select_x = "V1",
-                               select_y = "V2",
-                               annot_label ="none"
+    req(scExp(), input$color_by)
+    p = plot_reduced_dim_scExp(scExp(),input$color_by, "TSNE"
     )
     unlocked$list$tsne = T
     p
   })
   output$tsne_plot <- plotly::renderPlotly( plotly::ggplotly(tsne_plot(), tooltip="Sample", dynamicTicks=T) )
+  
+  umap_plot <- reactive({
+    req(scExp(), input$color_by)
+    p = plot_reduced_dim_scExp(scExp(),input$color_by, "UMAP"
+    )
+    p
+  })
+  output$umap_plot <- plotly::renderPlotly( plotly::ggplotly(umap_plot(), tooltip="Sample", dynamicTicks=T) )
   
   output$color_box <- renderUI({
     req(input$color_by)
@@ -762,26 +768,33 @@ output$anno_cc_box <- renderUI({
   tsne_p_cf <- reactive({
     req(scExp_cf(), input$color_by_cf)
     p = plot_reduced_dim_scExp(scExp_cf(),input$color_by_cf, "TSNE",
-                               select_x = "V1",
-                               select_y = "V2",
-                               annot_label ="none")
+                               select_x = "Component_1",
+                               select_y = "Component_2")
     p
   })
   output$tsne_plot_cf <- plotly::renderPlotly( plotly::ggplotly(tsne_p_cf(), tooltip="Sample", dynamicTicks = T) )
+  
+  umap_p_cf <- reactive({
+    req(scExp_cf(), input$color_by_cf)
+    p = plot_reduced_dim_scExp(scExp_cf(),input$color_by_cf, "UMAP",
+                               select_x = "Component_1",
+                               select_y = "Component_2")
+    p
+  })
+  output$umap_plot_cf <- plotly::renderPlotly( plotly::ggplotly(umap_p_cf(), tooltip="Sample", dynamicTicks = T) )
   
   levels_selected_cf <- reactive({
     req(scExp_cf(),input$color_by_cf)
     levels_selected_cf = SummarizedExperiment::colData(scExp_cf())[,input$color_by_cf] %>% unique() %>% as.vector()
   })
   
-  output$tsne_box_cf <- renderUI({
+  output$plot_cf_box <- renderUI({
     if(! is.null(scExp_cf())){
       if("chromatin_group" %in% colnames(SummarizedExperiment::colData(scExp_cf())) ){
         shinydashboard::box(title="Annotated tSNE", width = NULL, status="success", solidHeader = T,
-            column(6, align="left", selectInput("color_by_cf", "Color by", choices = c('sample_id', 'total_counts', 'chromatin_group'))),
-            column(6, align="left", selectInput("anno_tsne_anno", "Labels", choices = c('none', 'cell_id', 'sample_id', 'total_counts'))),
-            column(12, align="left", plotly::plotlyOutput("tsne_plot_cf")))
-        
+            column(6, align="left", selectInput("color_by_cf", "Color by", choices = c('sample_id', 'total_counts', 'chromatin_group','batch_id'))),
+            column(12, align="left", plotly::plotlyOutput("tsne_plot_cf")),
+            column(12, align="left", plotly::plotlyOutput("umap_plot_cf")))
       }
     }
   })
@@ -1164,7 +1177,8 @@ output$anno_cc_box <- renderUI({
   MSIG.classes <- reactive({
     myData = new.env()
     eval(parse(text = paste0("data(",annotation_id(),".MSigDB,envir = myData)")))
-    unique(myData$MSIG.gs$Class)
+    classes = eval(parse(text = paste0("myData$",annotation_id(),".MSIG.gs$Class")))
+    unique(classes)
   })
 
   annotFeat_long <- reactive({
@@ -1180,7 +1194,6 @@ output$anno_cc_box <- renderUI({
     print("Can usepeak calling exist ?")
     if(!is.null(scExp_cf())){
       if("refined_annotation" %in% names(scExp_cf()@metadata) ){
-        print("TRUE")
         return(TRUE)
       } else return(FALSE)
     } else{

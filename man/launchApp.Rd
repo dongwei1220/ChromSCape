@@ -10,6 +10,6 @@ launchApp()
 Launch ChromSCape
 }
 \examples{
-ChromScape::launchApp()
+launchApp()
 
 }

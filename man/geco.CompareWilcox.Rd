@@ -23,6 +23,8 @@ geco.CompareWilcox(
 \item{groups}{}
 
 \item{featureTab}{}
+
+\item{block}{}
 }
 \value{
 

@@ -50,9 +50,11 @@
 #' @examples
 #' 
 #' @importFrom SingleCellExperiment colData
-#' @importFrom GenomicRanges GRanges start end union pintersect distanceToNearest
+#' @importFrom GenomicRanges GRanges start end union pintersect distanceToNearest ranges
 #' @importFrom SummarizedExperiment rowRanges
-#' @importFrom IRanges findOverlapPairs
+#' @importFrom IRanges findOverlapPairs subsetByOverlaps
+#' @importFrom S4Vectors mcols
+#' @importFrom utils read.table
 subset_bam_call_peaks <- function(scExp, odir, inputBam, p.value = 0.05,
                                   ref = "hg38", peak_distance_to_merge = 10000, geneTSS_annotation = NULL){
   stopifnot(is(scExp,"SingleCellExperiment"), dir.exists(odir), is.numeric(p.value), is.character(ref),
@@ -114,7 +116,7 @@ subset_bam_call_peaks <- function(scExp, odir, inputBam, p.value = 0.05,
   #Peak calling with macs2
   print("Using MACS2 to call peaks in each cluster...")
   merged_peaks = list()
-  ref_chromosomes = startGRanges(eval(parse(text = paste0(ref,".chromosomes"))))
+  ref_chromosomes = GRanges(eval(parse(text = paste0(ref,".chromosomes"))))
   #Count properly paired mapped reads
   for(class in levels(factor(affectation$chromatin_group))){
     
@@ -150,7 +152,7 @@ subset_bam_call_peaks <- function(scExp, odir, inputBam, p.value = 0.05,
                        colClasses = c("character","integer","integer", rep("NULL",6)))
     colnames(peaks) = c("chr","start","end")
     peaks = GenomicRanges::GRanges(peaks)
-    peaks = peaks[which(width(ranges(peaks)) >= 500),]
+    peaks = peaks[which(width(GenomicRanges::ranges(peaks)) >= 500),]
     peaks = GenomicRanges::reduce(peaks, min.gapwidth = peak_distance_to_merge, ignore.strand = TRUE)
     peaks = suppressWarnings(GenomicRanges::subsetByOverlaps(peaks,ref_chromosomes, ignore.strand = TRUE))
     merged_peaks[[class]] = peaks
@@ -169,7 +171,7 @@ subset_bam_call_peaks <- function(scExp, odir, inputBam, p.value = 0.05,
   print("Merging BAM files together...")
   
   segmentation = SummarizedExperiment::rowRanges(scExp)
-  mcols(segmentation) = NULL
+  S4Vectors::mcols(segmentation) = NULL
   segmentation$window_ID = paste( as.character(segmentation@seqnames),
                                   GenomicRanges::start(segmentation),
                                   GenomicRanges::end(segmentation),
@@ -182,12 +184,12 @@ subset_bam_call_peaks <- function(scExp, odir, inputBam, p.value = 0.05,
  
   pairs <- IRanges::findOverlapPairs(segmentation, merged_peak, ignore.strand = TRUE)
   refined_annotation = GenomicRanges::pintersect(pairs,ignore.strand=T) 
-  mcols(refined_annotation)$hit = NULL
+  S4Vectors::mcols(refined_annotation)$hit = NULL
   
   hits_genes = GenomicRanges::distanceToNearest(refined_annotation,geneTSS_annotation, ignore.strand = T, select ="all")
   
-  refined_annotation = refined_annotation[queryHits(hits_genes)]
-  refined_annotation$Gene = as.character(geneTSS_annotation$gene[subjectHits(hits_genes)])
+  refined_annotation = refined_annotation[S4Vectors::queryHits(hits_genes)]
+  refined_annotation$Gene = as.character(geneTSS_annotation$gene[S4Vectors::subjectHits(hits_genes)])
   refined_annotation$distance = hits_genes@elementMetadata$distance
   
   refined_annotation$peak_ID = paste( as.character(refined_annotation@seqnames), 

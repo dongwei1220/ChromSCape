@@ -9,7 +9,7 @@ filter_correlated_cell_scExp(
   random_iter = 50,
   corr_threshold = 99,
   percent_correlation = 1,
-  verbose = T,
+  verbose = F,
   seed = 47
 )
 }

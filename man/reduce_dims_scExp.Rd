@@ -6,7 +6,7 @@
 \usage{
 reduce_dims_scExp(
   scExp,
-  dimension_reductions = c("PCA", "TSNE"),
+  dimension_reductions = c("PCA", "TSNE", "UMAP"),
   n = 50,
   batch_correction = F,
   batch_list = NULL,
@@ -16,11 +16,15 @@ reduce_dims_scExp(
 \arguments{
 \item{scExp}{A SingleCellExperiment object.}
 
-\item{dimension_reductions}{A character vector of methods to apply. [c("PCA","TSNE")]}
+\item{dimension_reductions}{A character vector of methods to apply. [c("PCA","TSNE","UMAP")]}
 
 \item{n}{Numbers of dimensions to keep for PCA. [50]}
 
-\item{verbose}{}
+\item{batch_correction}{Do batch correction ? [F]}
+
+\item{batch_list}{List of characters. Names are batch names, characters are sample names.}
+
+\item{verbose}{[T]}
 }
 \value{
 A SingleCellExperiment object containing feature spaces. See ?reduceDims().

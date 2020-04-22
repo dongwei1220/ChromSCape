@@ -2,7 +2,7 @@
 #'
 #' @export
 #'
-#' @examples ChromScape::launchApp()
+#' @examples launchApp()
 #' 
 #' @import shiny
 #'  

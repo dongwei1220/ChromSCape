@@ -99,6 +99,7 @@ create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zer
 #' @param quant_removal Centile of cell counts above which cells are removed. [95]
 #' @param percentMin Minimum percent of cells 'ON' in feature. [1]
 #' @param bin_min_count Minimum number of counts to define if cell is 'ON'. [2]
+#' @param verbose [T]
 #'
 #' @return Returns a filtered SingleCellExperiment object.
 #' 
@@ -354,10 +355,10 @@ feature_annotation_scExp <- function(scExp, ref = "hg38", reference_annotation =
   hits = GenomicRanges::distanceToNearest(feature_ranges, reference_annotation, ignore.strand = T, select = "all")
   
   annotFeat = data.frame(
-    chr = as.character(GenomicRanges::seqnames(feature_ranges[queryHits(hits)])),
-    start = as.character(GenomicRanges::start(feature_ranges[queryHits(hits)])),
-    end = as.character(GenomicRanges::end(feature_ranges[queryHits(hits)])),
-    Gene = as.character(reference_annotation@elementMetadata$gene)[subjectHits(hits)], 
+    chr = as.character(GenomicRanges::seqnames(feature_ranges[S4Vectors::queryHits(hits)])),
+    start = as.character(GenomicRanges::start(feature_ranges[S4Vectors::queryHits(hits)])),
+    end = as.character(GenomicRanges::end(feature_ranges[S4Vectors::queryHits(hits)])),
+    Gene = as.character(reference_annotation@elementMetadata$gene)[S4Vectors::subjectHits(hits)], 
     distance = hits@elementMetadata$distance) %>% 
     dplyr::mutate(ID = paste(chr, start, end, sep = "_")) %>% 
     dplyr::select(ID, chr, start,end, Gene, distance)
@@ -400,22 +401,25 @@ choose_perplexity <- function(dataset) {
 #' Reduce dimensions (PCA, TSNE, UMAP)
 #'
 #' @param scExp A SingleCellExperiment object.
-#' @param dimension_reductions A character vector of methods to apply. [c("PCA","TSNE")]
+#' @param dimension_reductions A character vector of methods to apply. [c("PCA","TSNE","UMAP")]
 #' @param n Numbers of dimensions to keep for PCA. [50]
-#' @param verbose 
-#'
+#' @param batch_correction Do batch correction ? [F]
+#' @param batch_list List of characters. Names are batch names, characters are sample names.
+#' @param verbose [T]
+#' 
 #' @return A SingleCellExperiment object containing feature spaces. See ?reduceDims().
 #' 
 #' @export
 #'
 #' @examples
 #' @importFrom Rtsne Rtsne
+#' @importFrom umap umap umap.defaults
 #' @importFrom SummarizedExperiment assays
 #' @importFrom SingleCellExperiment counts normcounts reducedDims
 #' @importFrom Matrix t
-reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n = 50, batch_correction = F,
+reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE", "UMAP"), n = 50, batch_correction = F,
                               batch_list = NULL, verbose = T) {
-  stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(n), dimension_reductions[1] %in% c("PCA", "TSNE"))
+  stopifnot(is(scExp, "SingleCellExperiment"), is.numeric(n), dimension_reductions[1] %in% c("PCA", "TSNE", "UMAP"))
   
   if (!"normcounts" %in% names(SummarizedExperiment::assays(scExp))) {
     warning("ChromSCape::reduce_dims_scExp - The raw counts are not normalized,
@@ -475,7 +479,7 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
     }
   }
   pca = as.data.frame(as.matrix(pca))
-  colnames(pca) <- paste0("PC", 1:n)
+  colnames(pca) <- paste0("Component_", 1:n)
   rownames(pca) <- colnames(scExp)
   
   set.seed(47)
@@ -485,12 +489,22 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
                          perplexity = choose_perplexity(pca), verbose = verbose,
                          max_iter = 1000)
     tsne = as.data.frame(tsne$Y)
+    colnames(tsne) = c("Component_1", "Component_2")
+  }
+  
+  if ("UMAP" %in% dimension_reductions) {
+    config = umap::umap.defaults
+    config$metric = "cosine"
+    umap = umap::umap(pca, config = config, method = "naive")
+    umap = as.data.frame(umap$layout)
+    colnames(umap) = c("Component_1", "Component_2")
   }
   
   # save PCA & T-SNE in scExp object
-  if ("TSNE" %in% dimension_reductions) 
-    SingleCellExperiment::reducedDims(scExp) = list(PCA = pca, TSNE = tsne) else
-      SingleCellExperiment::reducedDims(scExp) = list(PCA = pca)
+  listReducedDim = list(PCA = pca)
+  if ("TSNE" %in% dimension_reductions) listReducedDim$TSNE = tsne
+  if ("UMAP" %in% dimension_reductions) listReducedDim$UMAP = umap
+    SingleCellExperiment::reducedDims(scExp) = listReducedDim
   
   return(scExp)
 }
@@ -501,13 +515,16 @@ reduce_dims_scExp <- function(scExp, dimension_reductions = c("PCA", "TSNE"), n 
 #' @param n_comp 
 #'
 #' @return
-#'
+#' 
+#' @importFrom irlba irlba
+#' @importFrom Matrix colMeans
+#' 
 #' @examples
 pca_irlba_for_sparseMatrix <- function(x, n_comp){
   system.time({
     x.means <- Matrix::colMeans(x) 
     svd.0 <- irlba::irlba(x, center = x.means, nv=n_comp)
-    x. = sweep(x, 2, Matrix::colMeans(x),"-")
+    x. = sweep(x, 2, x.means,"-")
     pca = x. %*% svd.0$v
   })
   return(pca)

@@ -3,10 +3,11 @@
 #' @param m 
 #'
 #' @return
+#' @importFrom stats cor as.dist
 #' @export
 #'
 geco.distPearson <- function(m) {
-    as.dist(1 - cor(t(m), method = "pearson"))
+    stats::as.dist(1 - stats::cor(t(m), method = "pearson"))
 }
 
 #' geco.CompareWilcox
@@ -16,8 +17,10 @@ geco.distPearson <- function(m) {
 #' @param ref 
 #' @param groups 
 #' @param featureTab 
+#' @param block 
 #'
 #' @return
+#' @importFrom stats p.adjust wilcox.test
 #' @export
 #'
 geco.CompareWilcox <- function(dataMat = NULL, annot = NULL, ref = NULL,
@@ -44,11 +47,11 @@ geco.CompareWilcox <- function(dataMat = NULL, annot = NULL, ref = NULL,
             testWilc <- scran::pairwiseWilcox(x = log2Datamat, clusters = cells_cluster$Condition, block = cells_cluster$batch_id, direction = "any")
             pval.gpsamp <- testWilc$statistics[[1]]$p.value
         } else{
-            testWilc <- apply(dataMat, 1, function(x) wilcox.test(as.numeric(x[as.character(refsamp)]), as.numeric(x[as.character(gpsamp)])))
+            testWilc <- apply(dataMat, 1, function(x) stats::wilcox.test(as.numeric(x[as.character(refsamp)]), as.numeric(x[as.character(gpsamp)])))
             pval.gpsamp <- unlist(lapply(testWilc, function(x) x$p.value))
         }
         
-        qval.gpsamp <- p.adjust(pval.gpsamp, method = "BH")
+        qval.gpsamp <- stats::p.adjust(pval.gpsamp, method = "BH")
         Count.gpsamp <- apply(dataMat, 1, function(x) mean(x[as.character(gpsamp)]))
         cdiff.gpsamp <- apply(dataMat, 1, function(x) log(mean(x[as.character(gpsamp)])/mean(x[as.character(refsamp)]), 2))
         
@@ -89,11 +92,11 @@ geco.changeRange <- function(v, newmin = 1, newmax = 10) {
 geco.H1proportion <- function(pv = NA, lambda = 0.5) {
     pi1 = 1 - mean(pv > lambda, na.rm = TRUE)/(1 - lambda)
     if (pi1 < 0) {
-        warning(paste("estimated pi1 =", round(pi1, digit = 4), "set to 0"))
+        warning(paste("estimated pi1 =", round(pi1, digits = 4), "set to 0"))
         pi1 = 0
     }
     if (pi1 > 1) {
-        warning(paste("estimated pi1 =", round(pi1, digit = 4), "set to 1"))
+        warning(paste("estimated pi1 =", round(pi1, digits = 4), "set to 1"))
         pi1 = 1
     }
     return(pi1)
@@ -107,6 +110,7 @@ geco.H1proportion <- function(pv = NA, lambda = 0.5) {
 #' @param sep 
 #' @param silent 
 #'
+#' @importFrom stats phyper
 #' @return
 #' @export
 geco.enrichmentTest <- function(gene.sets, mylist, possibleIds, sep = ";", silent = F) {
@@ -130,7 +134,7 @@ geco.enrichmentTest <- function(gene.sets, mylist, possibleIds, sep = ";", silen
         y <- intersect(x, mylist)
         nx <- length(x)
         ny <- length(y)
-        pval <- phyper(ny - 1, nx, nids - nx, n, lower.tail = F)
+        pval <- stats::phyper(ny - 1, nx, nids - nx, n, lower.tail = F)
         c(nx, ny, pval, paste(y, collapse = sep))
     }
     tmp <- as.data.frame(t(sapply(gene.sets, fun)))
@@ -166,7 +170,7 @@ geco.hclustAnnotHeatmapPlot <- function(x = NULL, hc = NULL, hmColors = NULL, an
     geco.imageCol(anocol, xlab.cex = xlab.cex, ylab.cex = 0)  # [hc$order,]
     par(fig = c(xpos[3], xpos[4], ypos[1], ypos[2]), new = TRUE, mar = rep(0, 4))
     image(t(x), axes = FALSE, xlab = "", ylab = "", col = hmColors)
-    box()
+    graphics::box()
     if (hmRowNames) {
         axis(4, at = seq(0, 1, length.out = nrow(x)), labels = rownames(x), las = 1, cex.axis = hmRowNames.cex)
     }
@@ -220,10 +224,10 @@ geco.imageCol <- function(matcol = NULL, strat = NULL, xlab.cex = 0.5, ylab.cex 
     }
     if (drawLines %in% c("h", "b")) 
         abline(h = -0.5:(dim(csc)[2] - 1)/(dim(csc)[2] - 1))
-    box()
+    graphics::box()
     if (drawLines %in% c("v", "b")) 
         abline(v = 0.5:(dim(csc)[1] - 1)/(dim(csc)[1] - 1))
-    box()
+    graphics::box()
     if (!is.null(strat)) {
         z <- factor(matcol[, strat])
         levels(z) <- 1:length(levels(z))
@@ -269,7 +273,7 @@ geco.annotToCol2 <- function(annotS = NULL, annotT = NULL, missing = c("", NA), 
     if (plotLegend) 
         pdf(plotLegendFile)
     if (is.null(categCol)) 
-        categCol <- c("#4285F4", "#DB4437", "#F4B400", "#0F9D58", "#4285F4", "#DB4437", "#F4B400", "#0F9D58", "slategray", "black", 
+        categCol <- c("#4285F4", "#DB4437", "#F4B400", "#0F9D58", "slategray", "black", 
             "orange", "turquoise4", "yellow3", "orangered4", "orchid", "palegreen2", "orchid4", "red4", "peru", "orangered", "palevioletred4", 
             "purple", "sienna4", "turquoise1")
     # categCol <- c('royalblue', 'palevioletred1', 'red', 'palegreen4', 'skyblue', 'sienna2', 'slateblue3', 'pink2', 'slategray',
@@ -329,7 +333,7 @@ geco.annotToCol2 <- function(annotS = NULL, annotT = NULL, missing = c("", NA), 
         if (plotLegend) {
             par(mar = c(8, 2, 5, 1))
             lims <- seq(-1, 1, length.out = 200)
-            image(matrix(lims, nc = 1), col = colrange, axes = F, xlab = colnames(anocol)[j])
+            image(matrix(lims, ncol = 1), col = colrange, axes = F, xlab = colnames(anocol)[j])
         }
     }
     if (plotLegend) 
@@ -352,11 +356,11 @@ geco.annotToCol2 <- function(annotS = NULL, annotT = NULL, missing = c("", NA), 
 geco.groupMat <- function(mat = NA, margin = 1, groups = NA, method = "mean") {
     if (!method %in% c("mean", "median")) {
         print("Method must be mean or median")
-        break
+        return()
     }
     if (!margin %in% 1:2) {
         print("Margin must be 1 or 2")
-        break
+        return()
     }
     for (i in 1:length(groups)) {
         if (margin == 1) {

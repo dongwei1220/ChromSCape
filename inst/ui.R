@@ -120,15 +120,15 @@ shinyUI(shinydashboard::dashboardPage(skin='green',
                                   column(width=6,
                                          shinydashboard::box(title="PCA visualization", width = NULL, status="success", solidHeader=T,
                                              column(6, align="left", htmlOutput("color_by")),
-                                             column(6, align="left", htmlOutput("pca_anno_2D")),
                                              column(12, align="left", plotly::plotlyOutput("pca_plot")),
                                              column(3, align="left", htmlOutput("pc_select_x")),
                                              column(3, align="left", htmlOutput("pc_select_y"))),
                                          uiOutput("color_box")),
                                   column(width=6,
                                          shinydashboard::box(title="tSNE visualization", width = NULL, status="success", solidHeader=T,
-                                             column(6, align="left", htmlOutput("tsne_anno")),
-                                             column(12, align="left", plotly::plotlyOutput("tsne_plot")))
+                                             column(12, align="left", plotly::plotlyOutput("tsne_plot"))),
+                                         shinydashboard::box(title="UMAP visualization", width = NULL, status="success", solidHeader=T,
+                                                             column(12, align="left", plotly::plotlyOutput("umap_plot"))),
                                          )
                                 )
                         ),
@@ -181,7 +181,7 @@ shinyUI(shinydashboard::dashboardPage(skin='green',
                                              column(12, align="left", textOutput("nclust_selection_info"))),
                                          uiOutput("anno_cc_box"),
                                          uiOutput("anno_corc_box"),
-                                         uiOutput("tsne_box_cf"),
+                                         uiOutput("plot_cf_box"),
                                          uiOutput("color_box_cf")))
                         ),
                         
