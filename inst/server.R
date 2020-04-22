@@ -1176,7 +1176,7 @@ output$anno_cc_box <- renderUI({
   
   MSIG.classes <- reactive({
     myData = new.env()
-    eval(parse(text = paste0("data(",annotation_id(),".MSigDB,envir = myData)")))
+    eval(parse(text = paste0("data(",annotation_id(),".MSig.gs)")))
     classes = eval(parse(text = paste0("myData$",annotation_id(),".MSIG.gs$Class")))
     unique(classes)
   })

@@ -51,7 +51,7 @@ differential_analysis_scExp = function(scExp, de_type = "one_vs_rest",
   counts = SingleCellExperiment::normcounts(scExp)
   feature = data.frame(ID = SingleCellExperiment::rowData(scExp)[,"ID"],
                        chr = SingleCellExperiment::rowData(scExp)[,"chr"],
-                        start = SingleCellExperiment::rowData(scExp)[,"start"],
+                       start = SingleCellExperiment::rowData(scExp)[,"start"],
                        end = SingleCellExperiment::rowData(scExp)[,"end"])
   affectation = as.data.frame(SingleCellExperiment::colData(scExp))
   
@@ -206,7 +206,8 @@ gene_set_enrichment_analysis_scExp = function(scExp, enrichment_qval = 0.1, ref 
   
   if(is.null(GeneSets) | is.null(GeneSetsDf)) {
     message(paste0("ChromSCape::gene_set_enrichment_analysis_scExp - Selecting ",ref," MSigDB gene sets."))
-    eval(parse(text = paste0("data(",ref,".MSigDB)")))
+    eval(parse(text = paste0("data(",ref,".MSIG.ls)")))
+    eval(parse(text = paste0("data(",ref,".MSIG.gs)")))
     eval(parse(text = paste0("GeneSets = ",ref,".MSIG.ls")))
     eval(parse(text = paste0("GeneSetsDf = ",ref,".MSIG.gs")))
 
