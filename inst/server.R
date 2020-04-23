@@ -298,7 +298,7 @@ shinyServer(function(input, output, session) {
     exclude_regions <- if(input$exclude_regions) setNames(read.table(
       input$exclude_file$datapath, header = FALSE, stringsAsFactors = FALSE), c("chr", "start", "stop")) else NULL
   
-    callModule(moduleFiltering_and_Reduction, "Module_preprocessing_filtering_and_reduction", reactive({input$selected_raw_dataset}), reactive({input$min_coverage_cell}),
+    callModule(Module_preprocessing_filtering_and_reduction, "Module_preprocessing_filtering_and_reduction", reactive({input$selected_raw_dataset}), reactive({input$min_coverage_cell}),
                reactive({input$min_cells_window}), reactive({input$quant_removal}), reactive({init$datamatrix}), reactive({init$annot_raw}),
                reactive({init$data_folder}),reactive({annotationId}), reactive({exclude_regions}), reactive({annotCol()}),reactive({input$do_batch_corr}),
                 reactive({batch_sels}))
