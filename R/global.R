@@ -2,7 +2,7 @@
 #' @importFrom plotly plotlyOutput ggplotly renderPlotly
 #' @importFrom shinydashboard box tabItem tabItems dashboardBody sidebarMenu
 #'  dashboardHeader dashboardSidebar dashboardPage menuItem
-#' @importFrom shinyDirectoryInput choose.dir directoryInput readDirectoryInput updateDirectoryInput
+#' @importFrom shinyFiles shinyDirButton shinyDirChoose
 #' @importFrom shinyjs useShinyjs extendShinyjs html  
 #' @importFrom Matrix rowMeans cbind2
 #' @importFrom dplyr select mutate %>%

@@ -112,7 +112,7 @@ shinyServer(function(input, output, session) {
     })
   }})
   
-  shinyDirChoose(
+  shinyFiles::shinyDirChoose(
     input,
     'data_folder',
     roots = c(home = '~'),
@@ -132,9 +132,8 @@ shinyServer(function(input, output, session) {
     handlerExpr = {
        if ( (input$path_cookie != "[null]") && !is.null(input$path_cookie) && !is.na(input$path_cookie)) {
           #Uploading the name displayed in Data Folder
-          updateDirectoryInput(session, 'data_folder', value =  input$path_cookie)
 
-          init$data_folder <-normalizePath(gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie)))
+          init$data_folder <- normalizePath(gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie)))
           print(gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie)))
           print(init$data_folder)
           # directory(init$data_folder)
