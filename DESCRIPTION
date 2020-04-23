@@ -46,8 +46,12 @@ Imports:
     stats,
     graphics,
     utils,
-    S4Vectors(>= 0.20.1)
-Depends: 
-    R (>= 3.5.0),
+    S4Vectors(>= 0.20.1),
     SingleCellExperiment (>= 1.4.1),
     SummarizedExperiment (>= 1.12.0)
+Depends: 
+    R (>= 3.5.0),
+Remotes: wleepang/shiny-directory-input
+
+
+Remotes: JVAdams/jvamisc

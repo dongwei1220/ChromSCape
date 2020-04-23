@@ -1325,7 +1325,8 @@ output$anno_cc_box <- renderUI({
     req(input$gene_sel, input$region_sel)
     region <- strsplit(input$region_sel, " ")[[1]][1]
     if(region %in% rownames(scExp_cf())){
-      p <- ggplot(as.data.frame(SingleCellExperiment::reducedDim(scExp_cf(), "TSNE")), aes(x = V1, y = V2)) +
+      p <- ggplot(as.data.frame(SingleCellExperiment::reducedDim(scExp_cf(), "TSNE")),
+                  aes(x = "Component_1", y = "Component_2")) +
         geom_point(alpha = 0.5, aes(color = normcounts(scExp_cf())[region, ], shape = SummarizedExperiment::colData(scExp_cf())$chromatin_group)) +
         labs(color="norm. count for region", shape="Cluster", x="t-SNE 1", y="t-SNE 2") +
         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
