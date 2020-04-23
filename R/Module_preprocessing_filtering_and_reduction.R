@@ -1,8 +1,8 @@
-moduleFiltering_and_ReductionUI <- function(id, label = "Filtering_and_Reduction module") {
+Module_preprocessing_filtering_and_reductionUI <- function(id, label = "Module_preprocessing_filtering_and_reduction") {
     ns <- NS(id)
 }
 
-moduleFiltering_and_Reduction <- function(input, output, session, raw_dataset_name, min_cov_cell, percentMin, quant_removal, datamatrix, 
+Module_preprocessing_filtering_and_reduction <- function(input, output, session, raw_dataset_name, min_cov_cell, percentMin, quant_removal, datamatrix, 
                                           annot_raw, data_folder, annotation_id, exclude_regions, annotCol, doBatchCorr,
                                           batch_sels) {
     withProgress(message = "Processing data set...", value = 0, {
