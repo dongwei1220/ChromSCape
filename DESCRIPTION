@@ -52,6 +52,3 @@ Imports:
 Depends: 
     R (>= 3.5.0),
 Remotes: wleepang/shiny-directory-input
-
-
-Remotes: JVAdams/jvamisc
