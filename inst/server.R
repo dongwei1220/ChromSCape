@@ -41,7 +41,7 @@ shinyServer(function(input, output, session) {
   annotation_id <- reactive({ read.table(file.path(init$data_folder, 'datasets', dataset_name(), 'annotation.txt'), header = FALSE, stringsAsFactors = FALSE)[[1]] })
   
   #Global Functions
-  init <- reactiveValues(data_folder = NULL, datamatrix = data.frame(), annot_raw = data.frame(), available_raw_datasets = NULL,
+  init <- reactiveValues(data_folder =  getwd(), datamatrix = data.frame(), annot_raw = data.frame(), available_raw_datasets = NULL,
                          available_reduced_datasets = NULL, available_filtered_datasets = NULL)
   reduced_datasets <- reactive({ if (is.null(init$available_reduced_datasets)) c() else gsub('.{6}$', '', basename(init$available_reduced_datasets)) })
   
@@ -112,24 +112,34 @@ shinyServer(function(input, output, session) {
     })
   }})
   
+  shinyDirChoose(
+    input,
+    'data_folder',
+    roots = c(home = '~'),
+    filetypes = c('')
+  )
+  directory <- reactive(input$data_folder)
+  output$directory <- renderText({
+    init$data_folder
+  })
+  
   #Look for existing cookie
   observeEvent(
     ignoreNULL = TRUE,
     eventExpr = {
-      input$path_cookie  
+      input$path_cookie
     },
     handlerExpr = {
        if ( (input$path_cookie != "[null]") && !is.null(input$path_cookie) && !is.na(input$path_cookie)) {
           #Uploading the name displayed in Data Folder
-          shinyDirectoryInput::updateDirectoryInput(session, 'data_folder', value =  input$path_cookie)
-          init$data_folder <- gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie))
-          
+          updateDirectoryInput(session, 'data_folder', value =  input$path_cookie)
+
+          init$data_folder <-normalizePath(gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie)))
+          print(gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie)))
+          print(init$data_folder)
+          # directory(init$data_folder)
           init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
           init$available_reduced_datasets <- get.available.reduced.datasets()
-          
-          unlink(file.path("www", "images", "*"))  # delete all images produced in the last run
-          unlink(file.path(".", "*.csv"))
-          file.copy(list.files(file.path(init$data_folder, "datasets"), ".pdf$", full.names = TRUE), file.path("www", "images"))  # copy saved images into app
         }
       })
   
@@ -140,18 +150,28 @@ shinyServer(function(input, output, session) {
       input$data_folder  
     },
     handlerExpr = {
-      if (input$data_folder > 0) {
-        # launch the directory selection dialog with initial path read from the widget
-        folder = shinyDirectoryInput::choose.dir() #default = shinyDirectoryInput::readDirectoryInput(session, 'data_folder')
-        js$save_cookie(folder)
-        if (!is.na(folder)){
-          init$data_folder <- folder
-          init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
-          init$available_reduced_datasets <- get.available.reduced.datasets()
-          shinyDirectoryInput::updateDirectoryInput(session, 'data_folder', value = folder)
-          js$save_cookie(folder)
-        }
-      }
+      if (!"path" %in% names(directory())) return()
+      home <- normalizePath("~")
+      print(directory())
+      print(directory()$path)
+      init$data_folder <-
+        file.path(home, paste(unlist(directory()$path[-1]), collapse = .Platform$file.sep))
+
+      init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
+      init$available_reduced_datasets <- get.available.reduced.datasets()
+      js$save_cookie(init$data_folder)
+      # if (input$data_folder > 0) {
+      #   # launch the directory selection dialog with initial path read from the widget
+      #   folder = shinyDirectoryInput::choose.dir() #default = shinyDirectoryInput::readDirectoryInput(session, 'data_folder')
+      #   js$save_cookie(folder)
+      #   if (!is.na(folder)){
+      #     init$data_folder <- folder
+      #     init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
+      #     init$available_reduced_datasets <- get.available.reduced.datasets()
+      #     shinyDirectoryInput::updateDirectoryInput(session, 'data_folder', value = folder)
+      #     js$save_cookie(folder)
+      #   }
+      # }
     }
   )
   
@@ -170,7 +190,7 @@ shinyServer(function(input, output, session) {
       incProgress(0.3, detail="reading data matrices")
 
       for(i in 1:dim(input$datafile_matrix)[1]){
-
+        print(input$datafile_matrix$datapath[i])
         datamatrix_single <- scater::readSparseCounts(input$datafile_matrix$datapath[i], sep="\t")
         gc()
         #perform some checks on data format
@@ -188,9 +208,9 @@ shinyServer(function(input, output, session) {
           unlink(file.path(init$data_folder, "datasets", input$new_dataset_name), recursive = TRUE)
           return()
         }
-
-        numericC <- apply(head(datamatrix_single),MARGIN=2,is.numeric) # check if matrix is numeric
-        if(sum(numericC) < ncol(head(datamatrix_single))){
+        
+        numericC <- apply(datamatrix_single[1:5,1:5],MARGIN=2,is.numeric) # check if matrix is numeric
+        if(sum(numericC) < 5){
           showNotification(paste0(input$datafile_matrix$name, " contains non-numeric columns at the following indices: ", which(numericC==FALSE), ". Please check your data matrix and try again."), duration=NULL, closeButton=TRUE, type="warning")
           unlink(file.path(init$data_folder, "datasets", input$new_dataset_name), recursive=TRUE)
           return()
@@ -205,16 +225,14 @@ shinyServer(function(input, output, session) {
         datamatrix_single <- datamatrix_single[!duplicated(rownames(datamatrix_single)),] #put IN for new format
 
         if(length(grep("chr",rownames(datamatrix_single)[1:10],perl = T)) >= 9){
-
           rownames(datamatrix_single) <- gsub(":", "_", rownames(datamatrix_single))
-
           rownames(datamatrix_single) <- gsub("-", "_", rownames(datamatrix_single))
         }
         gc()
         total_cell <- length(datamatrix_single[1,])
 
         sample_name <- gsub('.{4}$', '', input$datafile_matrix$name[i])
-
+    
         annot_single <- data.frame(barcode = colnames(datamatrix_single),
                                    cell_id = paste0(sample_name, "_c", 1:total_cell),
                                    sample_id = rep(sample_name, total_cell),

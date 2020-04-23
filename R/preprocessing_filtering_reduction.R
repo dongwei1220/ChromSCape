@@ -25,6 +25,7 @@
 #' @examples
 #' 
 #' @importFrom SingleCellExperiment SingleCellExperiment counts colData
+#' @importFrom SummarizedExperiment rowRanges
 #' @importFrom Matrix rowSums colSums
 #' @importFrom scater calculateQCMetrics
 #' 
@@ -78,7 +79,7 @@ create_scExp <- function(datamatrix, annot, remove_zero_cells = TRUE, remove_zer
   
   if (has_genomic_coordinates(scExp)) {
     rows = rownames(scExp)
-    rowRanges(scExp) = get_genomic_coordinates(scExp)
+    SummarizedExperiment::rowRanges(scExp) = get_genomic_coordinates(scExp)
     rownames(scExp) = rows
   }
   
@@ -120,13 +121,14 @@ filter_scExp <- function(scExp, min_cov_cell = 1600, quant_removal = 95, percent
   
   cellCounts = Matrix::colSums(counts(scExp))
   
-  thresh = quantile(cellCounts, probs = seq(0, 1, 0.01))
+  thresh = stats::quantile(cellCounts, probs = seq(0, 1, 0.01))
   
   sel1000 = (cellCounts > 1000 & cellCounts <= thresh[quant_removal + 1])
   sel = (cellCounts > min_cov_cell & cellCounts <= thresh[quant_removal + 1])
   
   if (verbose) 
-    cat("ChromSCape::filter_scExp -",length(which(sel)), "cells pass the threshold of", min_cov_cell, "minimum reads and are lower than the ", quant_removal, 
+    cat("ChromSCape::filter_scExp -",length(which(sel)), "cells pass the threshold of",
+        min_cov_cell, "minimum reads and are lower than the ", quant_removal, 
         "th centile of library size ~=", round(thresh[quant_removal + 1]), "reads.\n")
   
   # Create the binary matrix of cells >= 1000 counts if count >= bin_min_count, count = 1 else
@@ -363,11 +365,13 @@ feature_annotation_scExp <- function(scExp, ref = "hg38", reference_annotation =
     dplyr::mutate(ID = paste(chr, start, end, sep = "_")) %>% 
     dplyr::select(ID, chr, start,end, Gene, distance)
   
-  annotFeat = annotFeat %>% dplyr::group_by(ID) %>% 
-    dplyr::summarise_all(funs(paste(unique(.), collapse = ", "))) %>%
-    as.data.frame()
+  system.time({
+    annotFeat = annotFeat %>% dplyr::group_by(ID) %>%
+      dplyr::summarise(Gene = paste(Gene, collapse=", "), distance = max(distance)) %>% as.data.frame()
+  })
+  
   annotFeat = annotFeat[match(rownames(scExp),annotFeat$ID),]
-  rowData(scExp) = annotFeat
+  SummarizedExperiment::rowData(scExp) = annotFeat
   return(scExp)
 }
 
@@ -546,7 +550,7 @@ num_cell_after_QC_filt_scExp <- function(scExp, annot){
   stopifnot(is(scExp, "SingleCellExperiment"), !is.null(annot))
   
   table = as.data.frame(table(annot$sample_id))
-  table_filtered = as.data.frame(table(colData(scExp)$sample_id))
+  table_filtered = as.data.frame(table(SingleCellExperiment::colData(scExp)$sample_id))
   
   colnames(table) = c("Sample","#Cells Before Filtering")
   rownames(table) = NULL 
