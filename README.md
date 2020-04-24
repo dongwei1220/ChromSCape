@@ -35,7 +35,10 @@ ChromSCape::launchApp()
 
 ## Test datasets
 
-ChromSCape takes as input one tab-separated count matrice (in .tsv or .txt) per sample. In order to upload multiple matrices, the matrices should be placed in the same folder of your computer.  
+ChromSCape takes as input one tab-separated count matrice (in .tsv or .txt) per sample. In order to upload multiple matrices, the matrices should be placed in the same folder of your computer. Before
+you input your own matrices, it is recommended you try playing around and familiarize
+with ChromSCape by uploading our example dataset :  
+
 
 Input count matrices corresponding to mouse cells from 2 PDX models, luminal and triple negative breast cancer tumours resistant or not to cancer therapy (respectively HBCx_22 & HBCx_95, see Grosselin et al., 2019) are available at https://figshare.com/projects/Single-Cell_ChIP-seq_of_Mouse_Stromal_Cells_in_PDX_tumour_models_of_resistance/66419 (theses count matrices have been processed using our latest data engineering pipeline, see https://github.com/vallotlab/scChIPseq_DataEngineering). The optional peak calling step requires  BAM files (also available on Figshare) to improve gene set enrichment analysis.
 
@@ -44,6 +47,18 @@ Alternatively, a ready-to-use pre-compiled analysis folder for HBCx22 & HBCx95 m
 ## Run Time
 
 On a Intel® Core™ i5-6500 CPU @ 3.20GHz × 4 with 31,3 Gio RAM, the installation took less than one hour. The running time of of scChIP_H3K27me3 test dataset was 25 minutes without peak calling and 35 minutes with peak calling.
+
+## Input
+
+The matrix format should be tab-separated file, with Cells as column & Features 
+as rows. The first line should be cell names, the first column should be feature 
+names. Feature names can be either genomic coordinate in the format 'chr:start-end'
+or 'chr_start_end' or gene symbols (e.g: A1BG, A1BG-AS1 for hg38 or Rab23, Bag2 
+for mm10). 
+Example matrix :
+
+![](inst/www/example_matrix_format.png)
+
 
 ## Output
 
