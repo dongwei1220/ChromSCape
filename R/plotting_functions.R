@@ -86,7 +86,7 @@ colors_scExp <- function(scExp, annotCol = "sample_id", color_by = "sample_id", 
 #'
 #' @return
 #'
-#' @examples
+#' @export
 #' @importFrom tibble rownames_to_column
 get_color_dataframe_from_input <- function(input, levels_selected, color_by = c("sample_id", 
     "total_counts"), input_id_prefix = "color_")

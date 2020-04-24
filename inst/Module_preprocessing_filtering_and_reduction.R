@@ -59,6 +59,7 @@ Module_preprocessing_filtering_and_reduction <- function(input, output, session,
             "QC_filtering", paste0(paste(raw_dataset_name(), min_cov_cell(), percentMin(), 
                 quant_removal(), batch_string, sep = "_"), ".RData")))
         
+        gc()
         print("Filtering & Reduction done !")
     })
 }
