@@ -953,7 +953,7 @@ reduce_dims_scExp <-
             SummarizedExperiment::colData(scExp) <- adj_annot
         } else
         {
-            scExp$batch_name <- "batch_1"
+            scExp$batch_id <- "batch_1"
             if (class(mat) %in% c("dgCMatrix", "dgTMatrix"))
             {
                 pca <- pca_irlba_for_sparseMatrix(Matrix::t(mat), n)

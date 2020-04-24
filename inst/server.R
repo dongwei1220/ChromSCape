@@ -448,8 +448,11 @@ shinyServer(function(input, output, session) {
   
   observeEvent(input$save_color, {  
     req(scExp(), input$color_by)
+
     color_df = get_color_dataframe_from_input(input,levels_selected(),input$color_by)
-    scExp. = colors_scExp(scExp(),annotCol = annotCol(),color_by = input$color_by, color_df = color_df)
+    print(head(color_df))
+    scExp. = colors_scExp(scExp(),annotCol = input$color_by,color_by = input$color_by, color_df = color_df)
+  
     scExp(scExp.)
     rm(scExp.)
   })
@@ -1326,10 +1329,6 @@ output$anno_cc_box <- renderUI({
   
   output$region_sel <- renderUI({
     req(input$gene_sel)
-    print(input$gene_sel)
-    print(head(annotFeat_long()$Gene))
-    print(input$gene_sel %in% annotFeat_long()$Gene)
-    print(which(annotFeat_long()$Gene==input$gene_sel))
     subset <- annotFeat_long()[which(annotFeat_long()$Gene==input$gene_sel), ]
     subset <- subset[order(subset$distance),]
     print(subset)
@@ -1370,10 +1369,39 @@ output$anno_cc_box <- renderUI({
     unlink(file.path("www", "images", "*"))
     unlink(file.path(".", "*.csv"))
     
+    if(!is.null(scExp()) & !is.null(input$selected_reduced_dataset)){
+      scExp = isolate(scExp())
+      save(scExp, file = file.path(init$data_folder, "datasets",
+                                   dataset_name(), "QC_filtering",
+                                   paste0(input$selected_reduced_dataset,".RData")))
+      
+    }
+    if(!is.null(scExp_cf()) & !is.null(input$selected_filtered_dataset)){
+      data = list()
+      data$scExp_cf = isolate(scExp_cf())
+      
+      if("consclust" %in% names(scExp_cf()@metadata)){
+        if("diff" %in% names(scExp_cf()@metadata)){
+          dir =file.path(init$data_folder, "datasets", dataset_name(), 
+                         "diff_analysis_GSEA", paste0(
+                           input$selected_filtered_dataset, "_",
+                           input$selected_k,
+                           "_", input$qval.th, "_", input$cdiff.th, "_",
+                           input$de_type, ".RData"))
+        } else{
+          dir = file.path(init$data_folder, "datasets", dataset_name(),
+                          "correlation_clustering",
+                         paste0(input$selected_filtered_dataset, 
+                                 ".RData"))
+        }
+        save(scExp, file = dir)
+      } 
+      
+    }
+    
     lapply(names(resourcePaths()), removeResourcePath)
     
     print("Thank you & see you next time !")
-    js$closeWindow()
     stopApp()
   })
   
