@@ -366,7 +366,7 @@ feature_annotation_scExp <- function(scExp, ref = "hg38", reference_annotation =
     dplyr::select(ID, chr, start,end, Gene, distance)
   
   system.time({
-    annotFeat = annotFeat %>% dplyr::group_by(ID) %>%
+    annotFeat = annotFeat %>% dplyr::group_by(ID,chr,start,end) %>%
       dplyr::summarise(Gene = paste(Gene, collapse=", "), distance = max(distance)) %>% as.data.frame()
   })
   

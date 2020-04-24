@@ -269,7 +269,7 @@ consensus_clustering_scExp <- function(scExp, prefix = NULL, maxK = 10, reps = 1
   if(is.null(SingleCellExperiment::reducedDim(scExp,"PCA"))) stop(
     "ChromSCape::consensus_clustering_scExp - No PCA, run reduced_dim before filtering.")
   
-  if(length(prefix) == 0) {
+  if(length(prefix) <= 1) {
     plot_consclust = NULL
     plot_icl = NULL
     prefix = ""
@@ -382,8 +382,8 @@ num_cell_in_cluster_scExp <- function(scExp){
   tab <- table_raw
   if(length(unique(SingleCellExperiment::colData(scExp)$sample_id))==1){
     chi_pvalues = rep(1,dim(as.matrix(table_raw))[1])
-    tab <- Matrix::t(tab)
   }
+  
   chi_pvalues= round(chi_pvalues, 5)
   chi_pvalues[which(chi_pvalues==0)] <- "<0.00001"
   chi_pvalues = c(chi_pvalues,"")

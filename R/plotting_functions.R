@@ -209,7 +209,7 @@ plot_heatmap_scExp <- function(scExp, name_hc = "hc_cor",
 
 #' Differential summary barplot
 #'
-#' @param scExp_cf 
+#' @param scExp_cf add R
 #'
 #' @return
 #' @export
