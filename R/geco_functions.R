@@ -58,7 +58,7 @@ geco.CompareWilcox <- function(dataMat = NULL, annot = NULL, ref = NULL,
         Rank.gpsamp <- rank(qval.gpsamp)  # This is different from the rank used in the Wilcox.test !! 
         
         res <- data.frame(res, Rank.gpsamp, Count.gpsamp, cdiff.gpsamp, pval.gpsamp, qval.gpsamp)
-
+        
         colnames(res) <- sub("ref", names(ref)[min(c(k, length(ref)))], sub("gpsamp", names(groups)[k], colnames(res)))
     }
     res
@@ -162,7 +162,7 @@ geco.enrichmentTest <- function(gene.sets, mylist, possibleIds, sep = ";", silen
 #' @export
 #'
 geco.hclustAnnotHeatmapPlot <- function(x = NULL, hc = NULL, hmColors = NULL, anocol = NULL, xpos = c(0.1, 0.9, 0.114, 0.885), ypos = c(0.1, 
-    0.5, 0.5, 0.6, 0.62, 0.95), dendro.cex = 1, xlab.cex = 0.8, hmRowNames = FALSE, hmRowNames.cex = 0.5) {
+                                                                                                                                        0.5, 0.5, 0.6, 0.62, 0.95), dendro.cex = 1, xlab.cex = 0.8, hmRowNames = FALSE, hmRowNames.cex = 0.5) {
     # layout(matrix(1:3,3),heights=lhei)
     par(fig = c(xpos[1], xpos[2], ypos[5], ypos[6]), new = FALSE, mar = c(0, 0, 1.5, 0))  #c(0.1,0.9,0.3,1)
     plot(hc, main = "Hierarchical clustering", xlab = "", sub = "", las = 2, cex = dendro.cex, cex.axis = dendro.cex)
@@ -189,7 +189,7 @@ geco.hclustAnnotHeatmapPlot <- function(x = NULL, hc = NULL, hmColors = NULL, an
 #' @export
 #'
 geco.imageCol <- function(matcol = NULL, strat = NULL, xlab.cex = 0.5, ylab.cex = 0.5, drawLines = c("none", "h", "v", "b")[1], 
-    ...) {
+                          ...) {
     if (is.null(ncol(matcol))) {
         matcol <- data.frame(matcol)
         colnames(matcol) = colnames(anocol)
@@ -233,7 +233,7 @@ geco.imageCol <- function(matcol = NULL, strat = NULL, xlab.cex = 0.5, ylab.cex 
         levels(z) <- 1:length(levels(z))
         z <- geco.vectorToSegments(as.numeric(z))
         abline(v = geco.changeRange(c(0.5, z$Ind_K + 0.5)/max(z$Ind_K), newmin = par()$usr[1], newmax = par()$usr[2]), lwd = 2, 
-            lty = 2)
+               lty = 2)
     }
 }
 
@@ -254,7 +254,7 @@ geco.imageCol <- function(matcol = NULL, strat = NULL, xlab.cex = 0.5, ylab.cex 
 #' @export
 #'
 geco.annotToCol2 <- function(annotS = NULL, annotT = NULL, missing = c("", NA), anotype = NULL, maxnumcateg = 2, categCol = NULL, 
-    quantitCol = NULL, plotLegend = T, plotLegendFile = NULL) {
+                             quantitCol = NULL, plotLegend = T, plotLegendFile = NULL) {
     if (is.null(ncol(annotS))) {
         annotS <- data.frame(annotS)
         colnames(annotS) = annotCol
@@ -274,8 +274,8 @@ geco.annotToCol2 <- function(annotS = NULL, annotT = NULL, missing = c("", NA), 
         pdf(plotLegendFile)
     if (is.null(categCol)) 
         categCol <- c("#4285F4", "#DB4437", "#F4B400", "#0F9D58", "slategray", "black", 
-            "orange", "turquoise4", "yellow3", "orangered4", "orchid", "palegreen2", "orchid4", "red4", "peru", "orangered", "palevioletred4", 
-            "purple", "sienna4", "turquoise1")
+                      "orange", "turquoise4", "yellow3", "orangered4", "orchid", "palegreen2", "orchid4", "red4", "peru", "orangered", "palevioletred4", 
+                      "purple", "sienna4", "turquoise1")
     # categCol <- c('royalblue', 'palevioletred1', 'red', 'palegreen4', 'skyblue', 'sienna2', 'slateblue3', 'pink2', 'slategray',
     # 'black', 'orange', 'turquoise4', 'yellow3', 'orangered4', 'orchid', 'palegreen2', 'orchid4', 'red4', 'peru', 'orangered',
     # 'palevioletred4', 'purple', 'sienna4', 'turquoise1')
@@ -368,9 +368,9 @@ geco.groupMat <- function(mat = NA, margin = 1, groups = NA, method = "mean") {
                 v <- mat[, groups[[i]]]
             } else {
                 if (method == "mean") {
-                  v <- apply(mat[, groups[[i]]], margin, mean)
+                    v <- apply(mat[, groups[[i]]], margin, mean)
                 } else {
-                  v <- apply(mat[, groups[[i]]], margin, median)
+                    v <- apply(mat[, groups[[i]]], margin, median)
                 }
             }
             if (i == 1) {
@@ -383,9 +383,9 @@ geco.groupMat <- function(mat = NA, margin = 1, groups = NA, method = "mean") {
                 v <- mat[groups[[i]], ]
             } else {
                 if (method == "mean") {
-                  v <- apply(mat[groups[[i]], ], margin, mean)
+                    v <- apply(mat[groups[[i]], ], margin, mean)
                 } else {
-                  v <- apply(mat[groups[[i]], ], margin, median)
+                    v <- apply(mat[groups[[i]], ], margin, median)
                 }
             }
             if (i == 1) {
