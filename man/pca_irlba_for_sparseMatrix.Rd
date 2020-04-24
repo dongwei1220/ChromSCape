@@ -7,8 +7,6 @@
 pca_irlba_for_sparseMatrix(x, n_comp)
 }
 \arguments{
-\item{x}{}
-
 \item{n_comp}{}
 }
 \value{

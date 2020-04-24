@@ -45,14 +45,6 @@ Alternatively, a ready-to-use pre-compiled analysis folder for HBCx22 & HBCx95 m
 
 On a Intel® Core™ i5-6500 CPU @ 3.20GHz × 4 with 31,3 Gio RAM, the installation took less than one hour. The running time of of scChIP_H3K27me3 test dataset was 25 minutes without peak calling and 35 minutes with peak calling.
 
-## Walkthrough of the App with screencast
-
-### 1 - Filtering, vizualiation & correlation
-![](www/scChIPseq_App_V1.gif)
-
-### 2 - Clustering, differential analysis & gene set enrichment
-![](www/scChIPseq_App_V1_2.gif)
-
 ## Output
 
 The app automatically creates a directory **datasets** in which a new directory is created for each analysis with a different input name. Inside that directory are created a directory for each part of the analysis, containing RData and figures.

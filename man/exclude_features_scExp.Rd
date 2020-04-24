@@ -11,9 +11,9 @@ exclude_features_scExp(scExp, features_to_exclude, by = "region", verbose = T)
 
 \item{features_to_exclude}{A data.frame containing features to exclude.}
 
-\item{by}{Type of features. Either 'region' or 'feature_name'. If 'region', will look for 
-genomic coordinates in columns 1-3 (chr,start,stop). If 'feature_name',
-will look for a genes in first column. ["region"]}
+\item{by}{Type of features. Either 'region' or 'feature_name'. If 'region',
+ will look for genomic coordinates in columns 1-3 (chr,start,stop). 
+If 'feature_name', will look for a genes in first column. ['region']}
 
 \item{verbose}{[T]}
 }

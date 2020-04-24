@@ -5,7 +5,7 @@ context("Testing reproducibility of preprocessing & filt with master")
 
 library(testthat)
 library(ChromSCape)
-setwd("/media/pacome/LaCie/InstitutCurie/Documents/Data/ChromSCape_Data/Reproducibility_new/Rdata_for_tests/")
+setwd("/media/pacome/LaCie/InstitutCurie/Documents/Data/ChromSCape_Data/Reproducibility_new/Rdata_for_tests/Synthetic_dataset/")
 out = create_scDataset_raw(featureType = "window", sparse = T)
 datamatrix = out$mat
 annot_raw = out$annot

@@ -18,7 +18,8 @@ filter_scExp(
 
 \item{min_cov_cell}{Minimum counts for each cell. [1600]}
 
-\item{quant_removal}{Centile of cell counts above which cells are removed. [95]}
+\item{quant_removal}{Centile of cell counts above which cells are removed.
+[95]}
 
 \item{percentMin}{Minimum percent of cells 'ON' in feature. [1]}
 
@@ -30,8 +31,8 @@ filter_scExp(
 Returns a filtered SingleCellExperiment object.
 }
 \description{
-Function to filter out cells & features from SingleCellExperiment based on total
-count per cell, number of cells 'ON' in features and top covered
+Function to filter out cells & features from SingleCellExperiment based on 
+total count per cell, number of cells 'ON' in features and top covered
 cells that might be doublets.
 }
 \examples{

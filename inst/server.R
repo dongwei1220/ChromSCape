@@ -12,12 +12,7 @@ shinyServer(function(input, output, session) {
   
   #Initializating user experience functions
   js$init_directory() #Getting cookie for the directory
-  
-  session$sendCustomMessage(type = 'setHelpContent', message = list(steps = jsonlite::toJSON(steps) ))
-  # At start send custom message to start help
-  # session$sendCustomMessage(type = 'startHelp', message = list(""))
-
-
+ 
   # addResourcePath("www", system.file("www", package="ChromSCape"))
   tab_vector = c("pca_plots",
                  "cor_clustering",

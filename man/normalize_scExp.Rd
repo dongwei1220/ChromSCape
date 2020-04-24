@@ -9,11 +9,14 @@ normalize_scExp(scExp, type = c("RPKM", "CPM", "TPM", "feature_size_only"))
 \arguments{
 \item{scExp}{A SingleCellExperiment object.}
 
-\item{type}{Which normalization to apply. Either 'RPKM', 'CPM', 'TPM' or 'feature_size_only'. Note that for
-all normalization by size (RPKM, TPM, feature_size_only), the features must have defined genomic coordinates.}
+\item{type}{Which normalization to apply. Either 'RPKM', 'CPM', 'TPM' or
+'feature_size_only'. Note that for all normalization by size
+(RPKM, TPM, feature_size_only), the features must have defined
+genomic coordinates.}
 }
 \value{
-A SingleCellExperiment object containing normalized counts. (See ?normcounts())
+A SingleCellExperiment object containing normalized counts.
+ (See ?normcounts())
 }
 \description{
 Normalize counts

@@ -35,20 +35,20 @@ This title can be an abosulte or relative path.}
 \item{pFeature}{numerical value. proportion of features to sample. [1]}
 
 \item{distance}{character value. 'pearson': (1 - Pearson correlation), 'spearman' (1 - Spearman correlation),
-'euclidean', 'binary', 'maximum', 'canberra', 'minkowski" or custom distance function. ["pearson"]}
+'euclidean', 'binary', 'maximum', 'canberra', 'minkowski' or custom distance function. ['pearson']}
 
 \item{clusterAlg}{character value. cluster algorithm. 'hc' heirarchical (hclust), 
-'pam' for paritioning around medoids, 'km' for k-means upon data matrix, 'kmdist' ["hc"]
- for k-means upon distance matrices (former km option), or a function that returns a clustering. ["hc"]}
+'pam' for paritioning around medoids, 'km' for k-means upon data matrix, 'kmdist' ['hc']
+ for k-means upon distance matrices (former km option), or a function that returns a clustering. ['hc']}
 
-\item{innerLinkage}{hierarchical linkage method for subsampling. ["ward.D"]}
+\item{innerLinkage}{hierarchical linkage method for subsampling. ['ward.D']}
 
-\item{finalLinkage}{hierarchical linkage method for consensus matrix. ["ward.D"]}
+\item{finalLinkage}{hierarchical linkage method for consensus matrix. ['ward.D']}
 
 \item{plot_consclust}{character value. NULL - print to screen, 'pdf', 'png', 'pngBMP' for bitmap png,
-helpful for large datasets. ["pdf"]}
+helpful for large datasets. ['pdf']}
 
-\item{plot_icl}{same as above for item consensus plot. ["png"]}
+\item{plot_icl}{same as above for item consensus plot. ['png']}
 
 \item{seed}{Random seed. [47]}
 }

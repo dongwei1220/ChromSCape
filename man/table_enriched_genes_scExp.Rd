@@ -17,9 +17,9 @@ table_enriched_genes_scExp(
 
 \item{set}{A character vector, either 'Both', 'Overexpressed' or 'Underexpressed'. ['Both']}
 
-\item{chromatin_group}{Cell cluster. ["C1"]}
+\item{chromatin_group}{Cell cluster. ['C1']}
 
-\item{enr_class_sel}{Which classes of gene sets to show. [c("c1_positional", "c2_curated", ...)]}
+\item{enr_class_sel}{Which classes of gene sets to show. [c('c1_positional', 'c2_curated', ...)]}
 }
 \value{
 A DT::data.table of enriched gene sets.

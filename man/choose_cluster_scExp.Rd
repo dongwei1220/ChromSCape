@@ -11,7 +11,7 @@ choose_cluster_scExp(scExp, nclust = 3, hc_linkage = "ward.D")
 
 \item{nclust}{Number of cluster to pick [3]}
 
-\item{hc_linkage}{A linkage method for hierarchical clustering. See \link[stats]{cor}. ["ward.D"]}
+\item{hc_linkage}{A linkage method for hierarchical clustering. See \link[stats]{cor}. ['ward.D']}
 }
 \value{
 Returns a SingleCellExperiment object with each cell assigned to a correlation cluster in colData.

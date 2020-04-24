@@ -2,7 +2,8 @@
 % Please edit documentation in R/preprocessing_filtering_reduction.R
 \name{create_scExp}
 \alias{create_scExp}
-\title{Wrapper to create the single cell experiment from count matrix and feature dataframe}
+\title{Wrapper to create the single cell experiment from count matrix and feature
+ dataframe}
 \usage{
 create_scExp(
   datamatrix,
@@ -15,7 +16,8 @@ create_scExp(
 )
 }
 \arguments{
-\item{datamatrix}{A matrix or sparseMatrix of raw counts. Features x Cells (rows x columns).}
+\item{datamatrix}{A matrix or sparseMatrix of raw counts. Features x Cells
+(rows x columns).}
 
 \item{annot}{A data.frame containing informations on cells. Should have the
 same number of rows as the number of columns in datamatrix.}
@@ -34,9 +36,10 @@ same number of rows as the number of columns in datamatrix.}
 Returns a SingleCellExperiment object.
 }
 \description{
-Create the single cell experiment from (sparse) datamatrix and feature dataframe containing feature names and location.
-Also optionally removes zero count Features, zero count Cells, non canconical chromosomes, and chromosome M. Calculates QC
-Metrics (scran).
+Create the single cell experiment from (sparse) datamatrix and feature 
+dataframe containing feature names and location.
+Also optionally removes zero count Features, zero count Cells, non canconical
+ chromosomes, and chromosome M. Calculates QC Metrics (scran).
 }
 \examples{
 
