@@ -94,8 +94,9 @@ get_color_dataframe_from_input <- function(input, levels_selected, color_by = c(
     stopifnot(!is.null(input), is.character(levels_selected), is.character(color_by))
     
     # Get colors
-    color_list <- paste0("list(", paste0(levels_selected, " = ", input_id_prefix, 
+    color_list <- paste0("list(", paste0(levels_selected, " = input$", input_id_prefix, 
         levels_selected, collapse = ", "), ")")
+
     color_list <- eval(parse(text = color_list))
     # Transform into dataframe with right column names
     color_df = as.matrix(color_list) %>% as.data.frame(stringsAsFactors = F) %>% 
