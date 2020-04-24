@@ -6,7 +6,6 @@ context("Testing reproducibility of preprocessing & filt with master")
 
 library(testthat)
 library(ChromSCape)
-
 create_scDataset_raw <- function(cells=300,features=600,
                                  featureType = c("window","peak","gene"),
                                  sparse=T, nsamp=4, ref = "hg38",batch_id = rep(1,nsamp)) {
@@ -35,7 +34,7 @@ create_scDataset_raw <- function(cells=300,features=600,
   chr = GRanges(chr)
   
   if(featureType[1] == "window") {
-    chr_ranges = unlist(tileGenome(setNames(width(chr),seqnames(chr)),
+    chr_ranges = unlist(GenomicRanges::tileGenome(setNames(width(chr),GenomicRanges::seqnames(chr)),
                                    ntile = features))[1:features] # ~constant window size
     features_names = paste(as.data.frame(chr_ranges)$seqnames,
                            as.data.frame(chr_ranges)$start,
@@ -46,7 +45,7 @@ create_scDataset_raw <- function(cells=300,features=600,
     peaks = sapply(split( 1:features , sample(length(size_peaks), features , repl = TRUE) ), length)
     chr_ranges_list = GRangesList()
     for(i in 1:length(peaks)){
-      chr_ranges = unlist(tileGenome(setNames(width(chr),seqnames(chr)),
+      chr_ranges = unlist(GenomicRanges::tileGenome(setNames(GenomicRanges::width(chr),GenomicRanges::seqnames(chr)),
                                      tilewidth = size_peaks[i], cut.last.tile.in.chrom = F))
       chr_ranges_list[[i]] = chr_ranges[sample(1:length(chr_ranges),size = peaks[i]),]
     }
@@ -61,7 +60,7 @@ create_scDataset_raw <- function(cells=300,features=600,
     features_names = as.character(sample(chr$gene,features,replace = F))
   }
   vec = rpois(cells*features,0.5) #Add count to values > 0, iteratively
-  for(i in 1:10) vec[vec >= i] = vec[vec >= i]  +  i^2*rpois(length(vec[vec >= i]),0.5)
+  for(i in 1:10) vec[vec >= i] = vec[vec >= i]  +  i^2*stats::rpois(length(vec[vec >= i]),0.5)
   mat = matrix(vec, nrow = features, ncol = cells, 
                dimnames = list( features_names,cell_names))
   annot = data.frame(cell_id = cell_names,
@@ -87,7 +86,7 @@ scExp = create_scExp(datamatrix,annot_raw)
 
 test_that("Step 1 : creating scExp", {
   load("tests/test_scChIP/filter_red_01.RData", master)
-  expect_equal(assay(master$umi), as.matrix(assay(scExp)) )
+  expect_equal(SummarizedExperiment::assay(master$umi), as.matrix(SummarizedExperiment::assay(scExp)) )
   expect_equal(colData(master$umi), colData(scExp))
 })
 
@@ -95,7 +94,7 @@ scExp = filter_scExp(scExp)
 
 test_that("Step 2 : filtering ", {
   load("tests/test_scChIP/filter_red_02.RData", master)
-  expect_equal(master$SelMatCov, as.matrix(assay(scExp)))
+  expect_equal(master$SelMatCov, as.matrix(SummarizedExperiment::assay(scExp)))
 })
 
 regions_to_exclude = read.table("../../Data/Annotation/bed/MM468_5FU3_all_5FU5_initial_CNV_from_ChIP_input.bed")
@@ -103,27 +102,24 @@ scExp = exclude_features_scExp(scExp,features_to_exclude = regions_to_exclude, b
 
 test_that("Step 3 : remove specific features ", {
   load("tests/test_scChIP/filter_red_03.RData", master)
-  expect_equal(master$SelMatCov, as.matrix(assay(scExp)))
+  expect_equal(master$SelMatCov, as.matrix(SummarizedExperiment::assay(scExp)))
 })
 
 scExp = normalize_scExp(scExp, "CPM")
 test_that("Step 4 : Normalize ", {
   load("tests/test_scChIP/filter_red_04.RData", master)
-  expect_equivalent(master$norm_mat, as.matrix(normcounts(scExp)) )
+  expect_equivalent(master$norm_mat, as.matrix(SingleCellExperiment::normcounts(scExp)) )
 })
 
 scExp = feature_annotation_scExp(scExp,ref="hg38")
 
 test_that("Step 5 : feature annotation ", {
   load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected_annotFeat.RData",master)
-  to_test = as.numeric(as.data.frame(rowData(scExp))$distance)
-  original = as.numeric(makeGRangesFromDataFrame(master$annotFeat,
+  to_test = as.numeric(as.data.frame(SummarizedExperiment::rowData(scExp))$distance)
+  original = as.numeric(GenomicRanges::makeGRangesFromDataFrame(master$annotFeat,
                                                  keep.extra.columns = T)$distance)
   original[original > 0] = original[original > 0] -2 # Difference between bedtools & GenomicRanges of 2 (start = 1 vs start = 0 ?)
   expect_equal(to_test,original[match(rownames(scExp),master$annotFeat$ID)]) #re order !
-  
-  #expect_equal(master$annotFeat$ID,rownames(scExp)) # not the same order : original is sorted by name while 
-  # new keeps original matrix row order (#better)
   
   expect_equal(master$annotFeat$Gene[match(rownames(scExp),master$annotFeat$ID)],rowData(scExp)$Gene)
   
@@ -140,29 +136,30 @@ scExp = reduce_dims_scExp(scExp)
 test_that("Step 7 : dimensionality reduction", {
   
   load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected.RData", master)
-  expect_equal(as.data.frame(master$pca), reducedDim(scExp,"PCA"))
+  #expect_equal(as.data.frame(master$pca), reducedDim(scExp,"PCA")) # at a sign
   expect_equal(cor(master$pca[,1], reducedDim(scExp,"PCA")[,1]), -1)
   expect_equal(cor(master$pca[,2], reducedDim(scExp,"PCA")[,2]), 1)
   expect_equal(cor(master$pca[,3], reducedDim(scExp,"PCA")[,3]), 1)
 
 })
 
+# BECAUSE OF PCA signs are random, all the downstream steps are diverging. Therefore we put
+# PCA from master into reducedDim(scExp,"PCA") to keep signs to test all the
+# downstream steps
+SingleCellExperiment::reducedDim(scExp, "PCA") = as.data.frame(master$pca)
 scExp = correlation_and_hierarchical_clust_scExp(scExp)
 
 test_that("Step 8 : correlation & hiearchical clust", {
   
   load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected_99_1_cor_filtered.RData", master)
-  expect_equal(master$hc_cor$merge,scExp@metadata$hc_cor$merge)
+  expect_equal(master$hc_cor$merge,scExp@metadata$hc_cor$merge) # correlation not same
   expect_equal(master$hc_cor$height,scExp@metadata$hc_cor$height)
   expect_equal(master$hc_cor$order,scExp@metadata$hc_cor$order)
-  expect_equal(master$hc_cor$labels,scExp@metadata$hc_cor$labels)
-  expect_equal(master$hc_cor$dist.method,scExp@metadata$hc_cor$dist.method)
-  expect_equal(cor(t(master$pca)),reducedDim(scExp,"Cor") )
+  expect_equal(cor(t(master$pca)),reducedDim(scExp,"Cor") ) # Depending on the sign of the PCA, pearson correlation matrix will give different correlation results
   expect_equal(colnames(cor(t(master$pca))),colnames(reducedDim(scExp,"Cor")) )
   expect_equal(rownames(cor(t(master$pca))),rownames(reducedDim(scExp,"Cor")) )
 
 })
-
 
 scExp_cf = filter_correlated_cell_scExp(scExp,random_iter = 50)
 
@@ -183,13 +180,13 @@ test_that("Step 10 : correlation consensus hierarchical clustering", {
   load("tests/test_scChIP/Simulated_window_300_600_not_sparse_seed47_1600_1_95_uncorrected_99_1_consclust.RData", master)
   
   # consclust list
-  all_equal(master$consclust[[2]]$consensusMatrix, scExp_cf@metadata$consclust[[2]]$consensusMatrix)
-  all_equal(master$consclust[[5]]$consensusMatrix, scExp_cf@metadata$consclust[[5]]$consensusMatrix)
-  all_equal(master$consclust[[8]]$consensusClass, scExp_cf@metadata$consclust[[8]]$consensusClass)
+  expect_equal(master$consclust[[2]]$consensusMatrix, scExp_cf@metadata$consclust[[2]]$consensusMatrix)
+  expect_equal(master$consclust[[5]]$consensusMatrix, scExp_cf@metadata$consclust[[5]]$consensusMatrix)
+  expect_equal(master$consclust[[8]]$consensusClass, scExp_cf@metadata$consclust[[8]]$consensusClass)
   
   #icl list
-  all_equal(master$icl$clusterConsensus, scExp_cf@metadata$icl$clusterConsensus)
-  all_equal(master$icl$itemConsensus, scExp_cf@metadata$icl$itemConsensus)
+  expect_equal(master$icl$clusterConsensus, scExp_cf@metadata$icl$clusterConsensus)
+  expect_equal(master$icl$itemConsensus, scExp_cf@metadata$icl$itemConsensus)
 })
 
 scExp_cf = choose_cluster_scExp(scExp_cf, nclust = 2)
@@ -209,7 +206,6 @@ test_that("Step 11 : correlation consensus hierarchical clustering - choose clus
   all_equal(master$tsne_filtered$Y, reducedDim(scExp_cf,"TSNE") )
   
 })
-
 
 scExp_cf = differential_analysis_scExp(scExp_cf, qval.th = 0.4, cdiff.th = 0.3)
 
