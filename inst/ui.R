@@ -22,6 +22,8 @@ shinyUI(shinydashboard::dashboardPage(skin='green',
                             shinydashboard::dashboardBody(
                               shinyjs::useShinyjs(),
                               tags$head(includeCSS('www/style.css')),
+                              tags$head(includeCSS('www/introjs.min.css')),
+                              tags$head(includeCSS('www/app.css')),
                               tags$style(type="text/css",
                                          ".shiny-output-error { visibility: hidden; }",
                                          ".shiny-output-error:before { visibility: hidden; }"
@@ -53,13 +55,16 @@ shinyUI(shinydashboard::dashboardPage(skin='green',
                                         
                                 fluidPage(
                                   shiny::includeScript(file.path(system.file(package="ChromSCape"),"js.cookie.js")),
+                                  shiny::includeScript(file.path(system.file(package="ChromSCape"),"intro.min.js")),
+                                  shiny::includeScript(file.path(system.file(package="ChromSCape"),"app.js")),
                                   #Load shinyJS added functions
                                   shinyjs::extendShinyjs(script = file.path(system.file(package="ChromSCape"),"shiny_js_functions.js"),
                                                          functions = c("init_directory","save_cookie","disableTab","enableTab")),
                                   #Left Panel
                                   column(width=6,
                                          shinydashboard::box(title="Select local data directory", width = NULL, status="warning", solidHeader=T,
-                                             column(12, align="left", shinyFiles::shinyDirButton("data_folder", "Input directory", "Upload"),
+                                             column(12, align="left",
+                                                    shinyFiles::shinyDirButton("data_folder", "Input directory", "Upload"),
                                                     verbatimTextOutput("directory", placeholder = TRUE)),
                                              column(12, align="left", textOutput("data_folder_info"))),
                                          shinydashboard::box(title="Select preprocessed data set", width = NULL, status="warning", solidHeader=T,

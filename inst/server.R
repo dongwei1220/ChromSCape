@@ -12,6 +12,11 @@ shinyServer(function(input, output, session) {
   
   #Initializating user experience functions
   js$init_directory() #Getting cookie for the directory
+  
+  session$sendCustomMessage(type = 'setHelpContent', message = list(steps = jsonlite::toJSON(steps) ))
+  # At start send custom message to start help
+  # session$sendCustomMessage(type = 'startHelp', message = list(""))
+
 
   # addResourcePath("www", system.file("www", package="ChromSCape"))
   tab_vector = c("pca_plots",
@@ -679,7 +684,7 @@ shinyServer(function(input, output, session) {
   
  output$cons_clust_pdf <- renderUI({
     req(clust$clust_pdf)
-    tags$iframe(style = "height:500px; width:100%", src = clust$clust_pdf)
+    if(!is.null(clust$clust_pdf)) tags$iframe(style = "height:500px; width:100%", src = clust$clust_pdf)
     })
 
   output$cluster_consensus_png <- renderUI({
