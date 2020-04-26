@@ -12,7 +12,7 @@ shinyServer(function(input, output, session) {
   
   #Initializating user experience functions
   js$init_directory() #Getting cookie for the directory
- 
+  volumes = c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()())
   # addResourcePath("www", system.file("www", package="ChromSCape"))
   tab_vector = c("pca_plots",
                  "cor_clustering",
@@ -113,11 +113,10 @@ shinyServer(function(input, output, session) {
   }})
   
   shinyFiles::shinyDirChoose(
-    input,
-    'data_folder',
-    roots = c(home = '~'),
-    filetypes = c('')
+    input, "data_folder", roots = volumes,
+    session = session, restrictions = system.file(package = "base")
   )
+    
   directory <- reactive(input$data_folder)
   output$directory <- renderText({
     init$data_folder
@@ -133,7 +132,8 @@ shinyServer(function(input, output, session) {
        if ( (input$path_cookie != "[null]") && !is.null(input$path_cookie) && !is.na(input$path_cookie)) {
           #Uploading the name displayed in Data Folder
 
-          init$data_folder <- normalizePath(gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie)))
+          init$data_folder <- normalizePath(gsub(pattern = "\"|\\[|\\]|\\\\", "",
+                                                 as.character(input$path_cookie)))
           print(gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie)))
           print(init$data_folder)
           # directory(init$data_folder)
