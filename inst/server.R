@@ -12,7 +12,7 @@ shinyServer(function(input, output, session) {
   
   #Initializating user experience functions
   js$init_directory() #Getting cookie for the directory
-  volumes = c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()())
+  volumes = c(Home = fs::path_home(), "R Installation" = R.home(), shinyFiles::getVolumes()())
   # addResourcePath("www", system.file("www", package="ChromSCape"))
   tab_vector = c("pca_plots",
                  "cor_clustering",
