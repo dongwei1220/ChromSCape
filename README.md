@@ -33,6 +33,8 @@ library(ChromSCape)
 ChromSCape::launchApp()
 ```
 
+Play around by inputing a simple matrix : [single-cell ChIP-seq matrix - HBCx95 (H3K27me3 mark)](inst/extdata/example_matrix.tsv.zip)
+
 ## Test datasets
 
 ChromSCape takes as input one tab-separated count matrice (in .tsv or .txt) per sample. In order to upload multiple matrices, the matrices should be placed in the same folder of your computer. Before
