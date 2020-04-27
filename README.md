@@ -33,7 +33,10 @@ library(ChromSCape)
 ChromSCape::launchApp()
 ```
 
-Play around by inputing a simple matrix : [single-cell ChIP-seq matrix - HBCx95 (H3K27me3 mark)](inst/extdata/example_matrix.tsv.zip)
+It is recommended to use Chrome browser for optimal display of graphics & table.
+If no browser opens, copy the url after 'Listening on ...' and paste in your browser.
+
+Play around by inputing a simple matrix (unzip first): [single-cell ChIP-seq matrix - HBCx95 (H3K27me3 mark)](inst/extdata/example_matrix.tsv.zip)
 
 ## Test datasets
 
