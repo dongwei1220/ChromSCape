@@ -129,17 +129,19 @@ shinyServer(function(input, output, session) {
       input$path_cookie
     },
     handlerExpr = {
-       if ( (input$path_cookie != "[null]") && !is.null(input$path_cookie) && !is.na(input$path_cookie)) {
-          #Uploading the name displayed in Data Folder
-
-          init$data_folder <- normalizePath(gsub(pattern = "\"|\\[|\\]|\\\\", "",
-                                                 as.character(input$path_cookie)))
-          print(gsub(pattern = "\"|\\[|\\]|\\\\", "",as.character(input$path_cookie)))
-          print(init$data_folder)
-          # directory(init$data_folder)
-          init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
-          init$available_reduced_datasets <- get.available.reduced.datasets()
-        }
+       if(.Platform$OS.type != "windows"){
+         if ( (input$path_cookie != "[null]") && !is.null(input$path_cookie) && !is.na(input$path_cookie)) {
+           #Uploading the name displayed in Data Folder
+           
+           init$data_folder <- gsub(pattern = "\"|\\[|\\]|\\\\", "",
+                                    as.character(input$path_cookie))
+           
+           print(init$data_folder)
+           # directory(init$data_folder)
+           init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
+           init$available_reduced_datasets <- get.available.reduced.datasets()
+         }
+       }
       })
   
   #Selecting a working directory using shinyDirectoryInput::readDirectoryInput(input$data_folder) and saving cookie
@@ -150,15 +152,16 @@ shinyServer(function(input, output, session) {
     },
     handlerExpr = {
       if (!"path" %in% names(directory())) return()
-      home <- normalizePath("~")
       print(directory())
       print(directory()$path)
       init$data_folder <-
-        file.path(home, paste(unlist(directory()$path[-1]), collapse = .Platform$file.sep))
+        file.path(volumes["Home"], paste(unlist(directory()$path[-1]), collapse = .Platform$file.sep))
 
       init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
       init$available_reduced_datasets <- get.available.reduced.datasets()
-      js$save_cookie(init$data_folder)
+      if(.Platform$OS.type != "windows"){
+        js$save_cookie(init$data_folder)
+      }
       # if (input$data_folder > 0) {
       #   # launch the directory selection dialog with initial path read from the widget
       #   folder = shinyDirectoryInput::choose.dir() #default = shinyDirectoryInput::readDirectoryInput(session, 'data_folder')
@@ -1291,25 +1294,25 @@ output$anno_cc_box <- renderUI({
   output$download_enr_data <- downloadHandler(
     filename = paste(input$selected_filtered_dataset, input$selected_k, input$qval.th, input$cdiff.th, "enrichment_tables.zip", sep="_"),
     content = function(fname){
-      fs <- c()
+      fis <- c()
       for(i in 1:length(scExp_cf()@metadata$diff$groups)){
         if(!is.null(scExp_cf()@metadata$enr$Both[[i]])){
           filename <- paste0(scExp_cf()@metadata$diff$groups[i], "_significant_gene_sets.csv")
-          fs <- c(fs, filename)
+          fis <- c(fis, filename)
           write.table(scExp_cf()@metadata$enr$Both[[i]], file = filename, quote = FALSE, row.names = FALSE, sep=",")
         }
         if(!is.null(scExp_cf()@metadata$enr$Overexpressed[[i]])){
           filename <- paste0(scExp_cf()@metadata$diff$groups[i], "_enriched_gene_sets.csv")
-          fs <- c(fs, filename)
+          fis <- c(fis, filename)
           write.table(scExp_cf()@metadata$enr$Overexpressed[[i]], file = filename, quote = FALSE, row.names = FALSE, sep=",")
         }
         if(!is.null(scExp_cf()@metadata$enr$Underexpressed[[i]])){
           filename <- paste0(scExp_cf()@metadata$diff$groups[i], "_depleted_gene_sets.csv")
-          fs <- c(fs, filename)
+          fis <- c(fis, filename)
           write.table(scExp_cf()@metadata$enr$Underexpressed[[i]], file = filename, quote = FALSE, row.names = FALSE, sep=",")
         }
       }
-      zip(zipfile = fname, files = fs)},
+      zip(zipfile = fname, files = fis)},
     contentType = "application/zip"
   )
   

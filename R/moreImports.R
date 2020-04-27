@@ -14,6 +14,7 @@
 #' @importFrom stats median quantile setNames wilcox.test
 #' @importFrom utils read.table
 #' @importFrom jsonlite toJSON
+#' @importFrom fs path_home
 #' @import shiny
 #' @import utils
 #' @import ggplot2
