@@ -1208,7 +1208,7 @@ output$anno_cc_box <- renderUI({
   MSIG.classes <- reactive({
     myData = new.env()
     eval(parse(text = paste0("data(",annotation_id(),".MSIG.gs)")))
-    classes = eval(parse(text = paste0("myData$",annotation_id(),".MSIG.gs$Class")))
+    eval(parse(text = paste0("classes = ",annotation_id(),".MSIG.gs$Class")))
     unique(classes)
   })
 
@@ -1271,9 +1271,12 @@ output$anno_cc_box <- renderUI({
     }
     })
   
-  output$enr_class_sel <- renderUI({shiny::checkboxGroupInput(inputId = "enr_class_sel", inline = T, label =  "Select classes to display:",
-                                                              selected = MSIG.classes(), choiceNames = MSIG.classes(),
-                                                              choiceValues = MSIG.classes())})
+  output$enr_class_sel <- renderUI({shiny::checkboxGroupInput(
+    inputId = "enr_class_sel", inline = T,
+    label =  "Select classes to display:",
+    selected = MSIG.classes(), choiceNames = MSIG.classes(),
+    choiceValues = MSIG.classes())
+  })
   
   output$all_enrich_table <- DT::renderDataTable({
     if(!is.null(scExp_cf())){
