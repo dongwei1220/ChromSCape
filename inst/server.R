@@ -151,11 +151,13 @@ shinyServer(function(input, output, session) {
     handlerExpr = {
       if (!"path" %in% names(directory())) return()
 
-      init$data_folder <-
-        file.path(volumes["Home"], paste(unlist(directory()$path[-1]), collapse = .Platform$file.sep))
-
+      init$data_folder <- parseDirPath(volumes, directory())
+      print("init$data_folder")
+      print(init$data_folder)
+      
       init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
       init$available_reduced_datasets <- get.available.reduced.datasets()
+
       if(.Platform$OS.type != "windows"){
         js$save_cookie(init$data_folder)
       }
@@ -617,7 +619,7 @@ shinyServer(function(input, output, session) {
   }
   
   plotting_directory <- reactive({
-    req( input$selected_filtered_dataset )
+    req( input$selected_filtered_dataset)
     if(!dir.exists(file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots")))
       dir.create(file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots"))
     file.path(init$data_folder, "datasets", dataset_name(), "correlation_clustering","Plots", input$selected_filtered_dataset)
@@ -691,6 +693,13 @@ shinyServer(function(input, output, session) {
     
   })
   
+  output$cluster_consensus_info <- renderText({
+    if(dir.exists(plotting_directory())){
+      paste0("If the PDF of consensus clustering results doesn't display correctly,
+             you can take a look at the PDF saved locally at :", 
+             plotting_directory())
+  } else ''
+  })
   output$nclust_selection_info <- renderText({"After performing the clustering and checking the results for different numbers of clusters, select here the preferred number of clusters to make additional annotated plots."})
 
   observeEvent(input$choose_cluster, {
