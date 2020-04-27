@@ -136,8 +136,6 @@ shinyServer(function(input, output, session) {
            init$data_folder <- gsub(pattern = "\"|\\[|\\]|\\\\", "",
                                     as.character(input$path_cookie))
            
-           print(init$data_folder)
-           # directory(init$data_folder)
            init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
            init$available_reduced_datasets <- get.available.reduced.datasets()
          }
@@ -152,8 +150,7 @@ shinyServer(function(input, output, session) {
     },
     handlerExpr = {
       if (!"path" %in% names(directory())) return()
-      print(directory())
-      print(directory()$path)
+
       init$data_folder <-
         file.path(volumes["Home"], paste(unlist(directory()$path[-1]), collapse = .Platform$file.sep))
 
@@ -453,7 +450,7 @@ shinyServer(function(input, output, session) {
     req(scExp(), input$color_by)
 
     color_df = get_color_dataframe_from_input(input,levels_selected(),input$color_by)
-    print(head(color_df))
+
     scExp. = colors_scExp(scExp(),annotCol = input$color_by,color_by = input$color_by, color_df = color_df)
   
     scExp(scExp.)
@@ -1334,7 +1331,6 @@ output$anno_cc_box <- renderUI({
     req(input$gene_sel)
     subset <- annotFeat_long()[which(annotFeat_long()$Gene==input$gene_sel), ]
     subset <- subset[order(subset$distance),]
-    print(subset)
     regions <- paste0(subset$ID, " (distance to gene TSS: ", subset$distance, ")")
     selectInput("region_sel", "Select associated genomic region:", choices = regions)
   })
