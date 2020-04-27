@@ -151,11 +151,13 @@ shinyServer(function(input, output, session) {
     handlerExpr = {
       if (!"path" %in% names(directory())) return()
 
-      init$data_folder <- parseDirPath(volumes, directory())
+      init$data_folder <- shinyFiles::parseDirPath(volumes, directory())
       print("init$data_folder")
       print(init$data_folder)
       
-      init$available_raw_datasets <- list.dirs(path = file.path(init$data_folder, "datasets"), full.names = FALSE, recursive = FALSE)
+      init$available_raw_datasets <- list.dirs(
+        path = file.path(init$data_folder, "datasets"),
+        full.names = FALSE, recursive = FALSE)
       init$available_reduced_datasets <- get.available.reduced.datasets()
 
       if(.Platform$OS.type != "windows"){
