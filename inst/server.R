@@ -1213,7 +1213,7 @@ output$anno_cc_box <- renderUI({
   })
 
   annotFeat_long <- reactive({
-    af = as.data.frame(rowData(scExp_cf()))
+    af = as.data.frame(SummarizedExperiment::rowData(scExp_cf()))
     af = tidyr::separate_rows(af, Gene,sep = ", ")
     af
   })
@@ -1353,7 +1353,8 @@ output$anno_cc_box <- renderUI({
     if(region %in% rownames(scExp_cf())){
       p <- ggplot(as.data.frame(SingleCellExperiment::reducedDim(scExp_cf(), "TSNE")),
                   aes(x = "Component_1", y = "Component_2")) +
-        geom_point(alpha = 0.5, aes(color = normcounts(scExp_cf())[region, ], shape = SummarizedExperiment::colData(scExp_cf())$chromatin_group)) +
+        geom_point(alpha = 0.5, aes(color = SingleCellExperiment::normcounts(scExp_cf())[region, ],
+                                    shape = SummarizedExperiment::colData(scExp_cf())$chromatin_group)) +
         labs(color="norm. count for region", shape="Cluster", x="t-SNE 1", y="t-SNE 2") +
         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
               panel.background = element_blank(), axis.line = element_line(colour="black"),
